@@ -1,0 +1,178 @@
+name: Release
+
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Git tag to build and attach to the GitHub Release
+        required: true
+        type: string
+
+env:
+  RELEASE_TAG: ${{ inputs.tag }}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.tag }}
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Test
+    runs-on: ubuntu-22.04
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup component add rustfmt
+
+      - name: Verify release tag
+        shell: bash
+        run: |
+          if ! git show-ref --verify --quiet "refs/tags/${RELEASE_TAG}"; then
+            echo "::error::Tag ${RELEASE_TAG} does not exist"
+            exit 1
+          fi
+
+          tag_commit="$(git rev-list -n 1 "${RELEASE_TAG}")"
+          if [[ "$(git rev-parse HEAD)" != "${tag_commit}" ]]; then
+            echo "::error::Checked out commit does not match tag ${RELEASE_TAG}"
+            exit 1
+          fi
+
+          package_version="$(cargo metadata --no-deps --format-version 1 | jq -er '.packages[] | select(.name == "edinet_cli") | .version')"
+          if [[ "${RELEASE_TAG}" != "v${package_version}" ]]; then
+            echo "::error::Tag ${RELEASE_TAG} does not match package version ${package_version}"
+            exit 1
+          fi
+
+      - name: Check formatting
+        run: cargo fmt --check
+
+      - name: Check
+        run: cargo check --locked
+
+      - name: Test
+        run: cargo test --locked
+
+  build:
+    name: Build ${{ matrix.target }}
+    needs: test
+    runs-on: ${{ matrix.os }}
+    env:
+      ASSET_NAME: edinet-${{ inputs.tag }}-${{ matrix.target }}
+      BINARY_PATH: target/${{ matrix.target }}/release/${{ matrix.binary }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-22.04
+            target: x86_64-unknown-linux-gnu
+            binary: edinet
+            archive: tar.gz
+          - os: ubuntu-22.04-arm
+            target: aarch64-unknown-linux-gnu
+            binary: edinet
+            archive: tar.gz
+          - os: macos-15-intel
+            target: x86_64-apple-darwin
+            binary: edinet
+            archive: tar.gz
+          - os: macos-15
+            target: aarch64-apple-darwin
+            binary: edinet
+            archive: tar.gz
+          - os: windows-2025
+            target: x86_64-pc-windows-msvc
+            binary: edinet.exe
+            archive: zip
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - name: Install Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+          rustup target add ${{ matrix.target }}
+
+      - name: Build
+        run: cargo build --release --locked --target ${{ matrix.target }}
+
+      - name: Verify version
+        shell: bash
+        run: |
+          expected_version="${RELEASE_TAG#v}"
+          actual_version="$("${BINARY_PATH}" --version)"
+          test "${actual_version}" = "edinet ${expected_version}"
+
+      - name: Package Unix
+        if: matrix.archive == 'tar.gz'
+        shell: bash
+        run: |
+          mkdir -p dist
+          cp "${BINARY_PATH}" "dist/${{ matrix.binary }}"
+          cp LICENSE THIRD_PARTY_LICENSES.html dist/
+          tar -C dist -czf "${ASSET_NAME}.tar.gz" "${{ matrix.binary }}" LICENSE THIRD_PARTY_LICENSES.html
+
+      - name: Package Windows
+        if: matrix.archive == 'zip'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path dist
+          Copy-Item $env:BINARY_PATH "dist/${{ matrix.binary }}"
+          Copy-Item LICENSE, THIRD_PARTY_LICENSES.html dist/
+          Compress-Archive -Path "dist/${{ matrix.binary }}", "dist/LICENSE", "dist/THIRD_PARTY_LICENSES.html" -DestinationPath "${env:ASSET_NAME}.zip"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ env.ASSET_NAME }}
+          path: ${{ env.ASSET_NAME }}.*
+          if-no-files-found: error
+
+  release:
+    name: Attach binaries to GitHub Release
+    needs: build
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+
+      - name: Download artifacts
+        uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Add license documents
+        run: cp LICENSE THIRD_PARTY_LICENSES.html dist/
+
+      - name: Generate checksums
+        working-directory: dist
+        run: |
+          sha256sum *.tar.gz *.zip LICENSE THIRD_PARTY_LICENSES.html > SHA256SUMS
+          sha256sum --check SHA256SUMS
+
+      - name: Upload binaries to existing Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: gh release upload "${{ env.RELEASE_TAG }}" dist/* --clobber
