@@ -3,5 +3,7 @@
 .env
 *.db*
 /data
+/docs/*
+!/docs/development.md
 edinet
 temp
