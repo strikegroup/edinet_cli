@@ -524,10 +524,3 @@ edinet status
 ## ライセンス
 
 このソフトウェアは [Apache License 2.0](LICENSE) で提供します。
-
-依存クレートのライセンス文書を更新するには、`cargo-about` 0.9.2 をインストールして生成コマンドを実行します。生成された `THIRD_PARTY_LICENSES.html` もリポジトリへコミットしてください。
-
-```bash
-cargo install --locked cargo-about --version 0.9.2 --features cli
-cargo about generate --locked --fail --output-file THIRD_PARTY_LICENSES.html about.hbs
-```

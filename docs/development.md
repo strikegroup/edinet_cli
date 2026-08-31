@@ -13,7 +13,7 @@
 
 ```bash
 git clone https://github.com/strikegroup/edinet_cli
-cd edinet_cli
+cd _securities_reports
 ```
 
 ### 3. 開発用環境変数を設定する
@@ -165,3 +165,13 @@ cargo run -- clear
 ```
 
 このコマンドは現在利用している SQLite DB ファイルと CSV キャッシュを削除します。`config.toml` に保存した API キーは残ります。
+
+
+
+## ライセンス更新
+依存クレートのライセンス文書を更新するには、`cargo-about` 0.9.2 をインストールして生成コマンドを実行します。生成された `THIRD_PARTY_LICENSES.html` もリポジトリへコミットしてください。
+
+```bash
+cargo install --locked cargo-about --version 0.9.2 --features cli
+cargo about generate --locked --fail --output-file THIRD_PARTY_LICENSES.html about.hbs
+```
