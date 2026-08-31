@@ -1,7 +1,3 @@
-// SPDX-FileCopyrightText: 2026 Strike Co., Ltd.
-//
-// SPDX-License-Identifier: Apache-2.0
-
 //! 有価証券報告書の章単位の抽出処理。
 
 mod business_overview;

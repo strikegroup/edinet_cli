@@ -1,7 +1,3 @@
-// SPDX-FileCopyrightText: 2026 Strike Co., Ltd.
-//
-// SPDX-License-Identifier: Apache-2.0
-
 //! EDINET の日次書類一覧を取得し、検索用 DB に反映するモジュール群。
 
 /// `update` コマンドの引数と実行処理。

@@ -1,7 +1,3 @@
-// SPDX-FileCopyrightText: 2026 Strike Co., Ltd.
-//
-// SPDX-License-Identifier: Apache-2.0
-
 const DOCUMENT_ID_LENGTH: usize = 8;
 
 /// EDINET の書類管理番号として安全に扱える形式か検証する。

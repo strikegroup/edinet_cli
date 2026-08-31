@@ -1,7 +1,3 @@
-// SPDX-FileCopyrightText: 2026 Strike Co., Ltd.
-//
-// SPDX-License-Identifier: Apache-2.0
-
 /// CLI で指定する4桁の提出年。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct SubmissionYear(u16);

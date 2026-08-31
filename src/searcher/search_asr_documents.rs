@@ -1,7 +1,3 @@
-// SPDX-FileCopyrightText: 2026 Strike Co., Ltd.
-//
-// SPDX-License-Identifier: Apache-2.0
-
 use anyhow::Context;
 use sea_orm::{
     ColumnTrait, Condition, DatabaseConnection, EntityTrait, QueryFilter, QueryOrder, QuerySelect,
