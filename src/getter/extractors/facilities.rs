@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Strike Co., Ltd.
+//
+// SPDX-License-Identifier: Apache-2.0
+
 use super::super::asr_report::Facilities;
 use super::super::xbrl_fact::XbrlFactIndex;
 

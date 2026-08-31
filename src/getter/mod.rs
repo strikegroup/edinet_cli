@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Strike Co., Ltd.
+//
+// SPDX-License-Identifier: Apache-2.0
+
 //! 有価証券報告書本文の取得・展開・CSV 解析を担当するモジュール群。
 
 /// 有価証券報告書の抽出結果と出力型の定義。

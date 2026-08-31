@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Strike Co., Ltd.
+//
+// SPDX-License-Identifier: Apache-2.0
+
 use clap::{ArgGroup, ValueEnum};
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, ValueEnum)]

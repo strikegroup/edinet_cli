@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Strike Co., Ltd.
+//
+// SPDX-License-Identifier: Apache-2.0
+
 const QUALIFIER: &str = "jp.co";
 const ORGANIZATION: &str = "strike";
 const APPLICATION: &str = "edinet_cli";

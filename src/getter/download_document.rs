@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Strike Co., Ltd.
+//
+// SPDX-License-Identifier: Apache-2.0
+
 use anyhow::Context;
 
 /// 指定 `doc_id` の XBRL CSV アーカイブをダウンロードし、展開先へ解凍する。

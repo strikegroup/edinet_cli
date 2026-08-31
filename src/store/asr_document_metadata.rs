@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Strike Co., Ltd.
+//
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::store::entities::document_metadata;
 
 /// インデックス DB (asrs.db) の `document_metadatas` テーブルの各レコードの写像に値する、有報メタデータのアプリ内部型。

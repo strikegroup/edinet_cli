@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Strike Co., Ltd.
+//
+// SPDX-License-Identifier: Apache-2.0
+
 use crate::getter::asr_report::{
     AsrReport, BalanceSheetItems, BalanceSheetPeriods, BusinessOverview, BusinessResultsPeriod,
     CompanyOverview, CorporateInformation, Facilities, FinancialInformation, GovernanceMetrics,
