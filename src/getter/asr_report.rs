@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Strike Group Co., Ltd.
+//
+// SPDX-License-Identifier: Apache-2.0
+
 #[derive(Debug, Clone, Default, serde::Serialize)]
 /// 有価証券報告書を、EDINET の章立て単位で再構成した抽出結果。
 ///

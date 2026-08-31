@@ -1,3 +1,7 @@
+// SPDX-FileCopyrightText: 2026 Strike Group Co., Ltd.
+//
+// SPDX-License-Identifier: Apache-2.0
+
 use super::super::asr_report::{
     BalanceSheetItems, BalanceSheetPeriods, FinancialInformation, PrimaryFinancialStatements,
     ProfitAndLossItems, ProfitAndLossPeriods,
