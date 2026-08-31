@@ -13,7 +13,7 @@
 
 ```bash
 git clone https://github.com/strikegroup/edinet_cli
-cd _securities_reports
+cd edinet_cli
 ```
 
 ### 3. 開発用環境変数を設定する
@@ -27,6 +27,7 @@ cp .env.example .env
 `DATABASE_URL` と `ASRS_CSV_CACHE_DIR` は通常未指定で問題ありません。必要なときだけ上書きします。
 
 ```env
+SQLX_OFFLINE=true
 # Optional overrides:
 # DATABASE_URL=sqlite:///absolute/path/to/asrs.db
 # ASRS_CSV_CACHE_DIR=/absolute/path/to/csv-cache
@@ -41,6 +42,7 @@ cargo run -- setup --key <YOUR_EDINET_API_KEY>
 ### 4. まず壊れていない状態を確認する
 
 ```bash
+cargo fmt --check
 cargo check
 cargo test
 cargo run -- --help
@@ -48,6 +50,7 @@ cargo run -- setup --help
 cargo run -- update --help
 cargo run -- search --help
 cargo run -- get --help
+cargo run -- download --help
 cargo run -- clear --help
 cargo run -- status --help
 ```
@@ -80,24 +83,37 @@ cargo run -- get --edinet-code E00424
 .
 ├── Cargo.toml
 ├── src/
+│   ├── app_config.rs
+│   ├── app_paths.rs
+│   ├── document_id.rs
 │   ├── main.rs
+│   ├── zip_archive.rs
+│   ├── downloader/
+│   ├── getter/
+│   ├── searcher/
 │   ├── store/
 │   │   ├── entities/
 │   │   └── open_db.rs
 │   ├── updater/
-│   ├── searcher/
-│   └── getter/
-└── docs/
+│   └── ...
+├── docs/
+│   └── development.md
+└── tools/
 ```
 
 主な責務は次の通りです。
 
 - `src/main.rs`: CLI のサブコマンド、引数、実行フローを定義します。
+- `src/app_config.rs`、`src/app_paths.rs`: API キーとローカルデータの保存先を管理します。
+- `src/document_id.rs`: EDINET 書類 ID の形式を検証します。
+- `src/zip_archive.rs`: ZIP のパスと展開量を検証しながら安全に展開します。
 - `src/store/open_db.rs`: SQLite 接続とスキーマ初期化を担当します。
 - `src/store/entities/`: SeaORM Entity と DB カラム定義を管理します。
 - `src/updater/`: EDINET の日次書類メタデータを取得し、検索用 DB に保存します。
 - `src/searcher/`: 保存済みメタデータから有価証券報告書候補を検索します。
 - `src/getter/`: 有価証券報告書 CSV を取得・展開・読み込み、主要項目を JSON 化します。
+- `src/downloader/`: PDF、XBRL、XBRL 変換 CSV のダウンロードを担当します。
+- `tools/`: 出力結果の評価など、開発補助用スクリプトを管理します。
 
 ## DB 方針
 
@@ -133,6 +149,7 @@ CSV 解析結果の `AsrReport` とは出力直前まで結合しません。
 変更後は、最低限次を確認します。
 
 ```bash
+cargo fmt --check
 cargo check
 cargo test
 cargo run -- --help
@@ -140,6 +157,7 @@ cargo run -- setup --help
 cargo run -- update --help
 cargo run -- search --help
 cargo run -- get --help
+cargo run -- download --help
 ```
 
 DB スキーマや検索条件を触った場合は、一時 DB で `status` や `search` の入口も確認します。
@@ -169,6 +187,7 @@ cargo run -- clear
 
 
 ## ライセンス更新
+
 依存クレートのライセンス文書を更新するには、`cargo-about` 0.9.2 をインストールして生成コマンドを実行します。生成された `THIRD_PARTY_LICENSES.html` もリポジトリへコミットしてください。
 
 ```bash

@@ -8,16 +8,24 @@ EDINET から有価証券報告書を取得し、主要項目を JSON で確認�
 - 企業コードや会社名で有価証券報告書を検索して取得する
 - 取得結果を JSON で確認する
 
-# Get Started
-
 ## インストール
 
+### Cargo
+
 ```bash
-cargo install --git https://github.com/strikegroup/edinet_cli
+cargo install --locked edinet_cli
+```
+
+### Homebrew
+
+```bash
+brew install strikegroup/tap/edinet
 ```
 
 ## セットアップ
+
 ### API キーの登録
+
 最初に EDINET API キーを登録します。
 
 ```bash
@@ -29,6 +37,7 @@ API キーは、以下の EDINET API 仕様書の 2-3 節の手順で取得し�
 https://disclosure2dl.edinet-fsa.go.jp/guide/static/disclosure/download/ESE140206.pdf
 
 ### 検索インデックスを更新
+
 使う前に検索インデックスを更新します。
 
 ```bash
@@ -307,20 +316,13 @@ edinet get --doc-id S100Y8NY
 
 ## よくあるエラー
 
-`failed to read config file ... run cargo run -- setup --key <EDINET_API_KEY> first or pass --key`
+`failed to read config file ...`
 
-API キーがまだ登録されていません。`setup` を実行するか、`update` / `get` に `--key` を付けて実行してください。
+API キーがまだ登録されていません。`edinet setup --key <YOUR_EDINET_API_KEY>` を実行するか、`update` / `get` / `download` に `--key` を付けて実行してください。
 
 `ASR document not found for the given query`
 
 条件に一致する書類が検索用データにない可能性があります。先に `edinet update` を実行してください。
-
-`migration 1 was previously applied but has been modified`
-
-ローカル DB と現在の migration 定義に差分があります。`edinet clear` でローカルデータを削除して作り直すか、新しい DB を指定して実行してください。詳細は [Development Guide](docs/development.md) を参照してください。
-
-
-# Documentation
 
 ## コマンド
 
@@ -519,7 +521,7 @@ edinet status
 
 ## 開発者向け情報
 
-実装構成、migration、SQLx、開発時の手順は [Development Guide](docs/development.md) を参照してください。
+実装構成、ローカル DB、開発時の手順は [Development Guide](docs/development.md) を参照してください。
 
 ## ライセンス
 
