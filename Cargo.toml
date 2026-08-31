@@ -9,6 +9,16 @@ version = "0.0.1"
 edition = "2024"
 default-run = "edinet"
 license = "Apache-2.0"
+exclude = [
+    ".env.example",
+    ".github/",
+    ".gitignore",
+    "about.hbs",
+    "about.toml",
+    "docs/*.pdf",
+    "release-plz.toml",
+    "tools/",
+]
 
 [[bin]]
 name = "edinet"
