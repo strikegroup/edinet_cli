@@ -19,6 +19,7 @@ pub async fn load_asr_report_by_doc_id(
     api_key: Option<&str>,
     offline: bool,
 ) -> anyhow::Result<AsrReport> {
+    crate::document_id::validate(doc_id)?;
     let cache_root = cache_root_dir()?;
     let csv_path = if offline {
         find_cached_asr_csv(doc_id, &cache_root)?

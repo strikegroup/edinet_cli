@@ -33,6 +33,7 @@ pub struct GetArgs {
         long,
         short = 'i',
         value_name = "DOC_ID",
+        value_parser = crate::document_id::parse,
         conflicts_with = "filter",
         help = "書類 ID を直接指定します（ほかの検索条件と併用不可）"
     )]

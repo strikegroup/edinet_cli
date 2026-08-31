@@ -7,9 +7,10 @@ pub(in crate::getter) async fn download_and_extract_xbrl_csv_archive(
     cache_root: &std::path::Path,
     extract_dir: &std::path::Path,
 ) -> anyhow::Result<()> {
+    crate::document_id::validate(doc_id)?;
     let archive_path = cache_root.join(format!("{doc_id}.zip"));
-    download_xbrl_csv_archive(doc_id, &api_key, &archive_path).await?;
-    extract_zip(&archive_path, &extract_dir).await?;
+    download_xbrl_csv_archive(doc_id, api_key, &archive_path).await?;
+    crate::zip_archive::extract(&archive_path, extract_dir).await?;
     Ok(())
 }
 
@@ -60,40 +61,4 @@ async fn download_xbrl_csv_archive(
     std::fs::write(dest, &body).context("failed to write XBRL CSV archive")?;
 
     Ok(())
-}
-
-async fn extract_zip(
-    archive_path: &std::path::Path,
-    extract_to: &std::path::Path,
-) -> anyhow::Result<()> {
-    let archive_path = archive_path.to_owned();
-    let extract_to = extract_to.to_owned();
-
-    tokio::task::spawn_blocking(move || {
-        let file = std::fs::File::open(archive_path).context("failed to open zip archive")?;
-        let mut archive = zip::ZipArchive::new(file).context("failed to read zip archive")?;
-
-        for index in 0..archive.len() {
-            let mut file = archive
-                .by_index(index)
-                .context("failed to access zip entry")?;
-            let out_path = extract_to.join(file.name());
-
-            if file.is_dir() {
-                std::fs::create_dir_all(&out_path).context("failed to create directory")?;
-                continue;
-            }
-
-            if let Some(parent) = out_path.parent() {
-                std::fs::create_dir_all(parent).context("failed to create parent directory")?;
-            }
-
-            let mut out_file =
-                std::fs::File::create(&out_path).context("failed to create extracted file")?;
-            std::io::copy(&mut file, &mut out_file).context("failed to write extracted file")?;
-        }
-
-        Ok(())
-    })
-    .await?
 }

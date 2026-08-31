@@ -16,6 +16,7 @@ pub async fn download_document(
     dest: &std::path::Path,
     extract: bool,
 ) -> anyhow::Result<std::path::PathBuf> {
+    crate::document_id::validate(doc_id)?;
     match doc_type {
         DocType::Xbrl => download_xbrl(doc_id, api_key, dest, extract).await,
         DocType::Pdf => download_pdf(doc_id, api_key, dest, extract).await,
@@ -24,7 +25,7 @@ pub async fn download_document(
 }
 
 /// 提出本文書、監査報告書、XBRL 一式の ZIP をダウンロードする。
-pub async fn download_xbrl(
+async fn download_xbrl(
     doc_id: &str,
     api_key: &str,
     dest: &std::path::Path,
@@ -65,14 +66,15 @@ pub async fn download_xbrl(
     out_file.write_all(&bytes).context("failed to write file")?;
 
     if extract {
-        extract_zip_archive(&output_path).await?;
+        let extract_to = output_path.with_extension("");
+        crate::zip_archive::extract(&output_path, &extract_to).await?;
     }
 
     Ok(output_path)
 }
 
 /// PDF をダウンロードする。
-pub async fn download_pdf(
+async fn download_pdf(
     doc_id: &str,
     api_key: &str,
     dest: &std::path::Path,
@@ -122,7 +124,7 @@ pub async fn download_pdf(
 }
 
 /// XBRL 変換 CSV の ZIP をダウンロードする。
-pub async fn download_csv(
+async fn download_csv(
     doc_id: &str,
     api_key: &str,
     dest: &std::path::Path,
@@ -163,46 +165,9 @@ pub async fn download_csv(
     out_file.write_all(&bytes).context("failed to write file")?;
 
     if extract {
-        extract_zip_archive(&output_path).await?;
+        let extract_to = output_path.with_extension("");
+        crate::zip_archive::extract(&output_path, &extract_to).await?;
     }
 
     Ok(output_path)
-}
-
-/// ZIP アーカイブを同名ディレクトリへ展開する。
-pub async fn extract_zip_archive(
-    archive_path: &std::path::Path,
-) -> anyhow::Result<std::path::PathBuf> {
-    let extract_to = archive_path.with_extension("");
-    let archive_path = archive_path.to_owned();
-    let extract_to_for_task = extract_to.clone();
-
-    tokio::task::spawn_blocking(move || {
-        let file = std::fs::File::open(&archive_path).context("failed to open zip archive")?;
-        let mut archive = zip::ZipArchive::new(file).context("failed to read zip archive")?;
-
-        for index in 0..archive.len() {
-            let mut file = archive
-                .by_index(index)
-                .context("failed to access zip entry")?;
-            let out_path = extract_to_for_task.join(file.name());
-
-            if file.is_dir() {
-                std::fs::create_dir_all(&out_path).context("failed to create directory")?;
-                continue;
-            }
-            if let Some(parent) = out_path.parent() {
-                std::fs::create_dir_all(parent).context("failed to create parent directory")?;
-            }
-
-            let mut out_file =
-                std::fs::File::create(&out_path).context("failed to create extracted file")?;
-            std::io::copy(&mut file, &mut out_file).context("failed to write extracted file")?;
-        }
-
-        Ok::<(), anyhow::Error>(())
-    })
-    .await??;
-
-    Ok(extract_to)
 }

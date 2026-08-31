@@ -1,6 +1,7 @@
 mod app_config;
 mod app_paths;
 mod clear;
+mod document_id;
 mod downloader;
 mod getter;
 mod searcher;
@@ -8,6 +9,7 @@ mod status;
 mod store;
 mod submission_year;
 mod updater;
+mod zip_archive;
 
 use clap::{Command, CommandFactory, FromArgMatches, Parser};
 
@@ -181,6 +183,30 @@ mod tests {
             .try_get_matches_from(args)
             .expect_err("help flag must stop argument parsing")
             .to_string()
+    }
+
+    #[test]
+    fn document_commands_reject_unsafe_document_ids() {
+        for args in [
+            &["edinet", "get", "--doc-id", "../file1"][..],
+            &[
+                "edinet",
+                "download",
+                "csv",
+                "./downloads",
+                "--doc-id",
+                "S100/AN1",
+            ][..],
+        ] {
+            let error = cli_command()
+                .try_get_matches_from(args)
+                .expect_err("unsafe document ID must be rejected");
+            assert!(
+                error
+                    .to_string()
+                    .contains("document ID must be exactly 8 uppercase ASCII letters or digits")
+            );
+        }
     }
 
     #[test]
