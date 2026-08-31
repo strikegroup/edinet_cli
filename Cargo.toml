@@ -1,0 +1,31 @@
+[package]
+name = "edinet_cli"
+description = "A command-line interface for EDINET."
+repository = "https://github.com/strikegroup/edinet_cli"
+categories = ["command-line-utilities"]
+keywords = ["EDINET", "cli", "securities", "XBRL"]
+version = "0.0.0"
+edition = "2024"
+default-run = "edinet"
+license = "Apache-2.0"
+
+[[bin]]
+name = "edinet"
+path = "src/main.rs"
+
+[dependencies]
+anyhow = "1.0.101"
+byteorder = "1.5.0"
+chrono = "0.4.42"
+clap = { version = "4.5.58", features = ["derive"] }
+csv = "1.4.0"
+directories = "6.0.0"
+dotenvy = "0.15.7"
+reqwest = "0.12.25"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
+sea-orm = { version = "1.1.17", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros"] }
+tabled = "0.21.0"
+tokio = { version = "1.49.0", features = ["full"] }
+toml = "0.8.23"
+zip = "6.0.0"
