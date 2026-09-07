@@ -1,0 +1,197 @@
+name: Publish APT repository
+
+on:
+  workflow_call:
+    inputs:
+      plan:
+        description: cargo-dist release plan
+        required: true
+        type: string
+    secrets:
+      APT_GPG_PRIVATE_KEY:
+        required: true
+      APT_GPG_PASSPHRASE:
+        required: true
+
+permissions:
+  contents: write
+  pages: write
+  id-token: write
+
+jobs:
+  publish:
+    if: ${{ !fromJSON(inputs.plan).announcement_is_prerelease }}
+    runs-on: ubuntu-22.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    env:
+      PLAN: ${{ inputs.plan }}
+      APT_GPG_PRIVATE_KEY: ${{ secrets.APT_GPG_PRIVATE_KEY }}
+      APT_GPG_PASSPHRASE: ${{ secrets.APT_GPG_PASSPHRASE }}
+      NFPM_VERSION: 2.47.0
+      NFPM_SHA256: 0660ca602b2d2d2ae4781a06c692b3eeb9d437ffea05b831d76e41f4a3188783
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - name: Download release artifacts
+        uses: actions/download-artifact@v8
+        with:
+          pattern: artifacts-*
+          path: artifacts/
+          merge-multiple: true
+
+      - name: Install packaging tools
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install --yes apt-utils dpkg-dev gnupg
+
+          archive="$RUNNER_TEMP/nfpm.tar.gz"
+          install_dir="$RUNNER_TEMP/nfpm"
+          curl --proto '=https' --tlsv1.2 --fail --silent --show-error --location \
+            --output "$archive" \
+            "https://github.com/goreleaser/nfpm/releases/download/v${NFPM_VERSION}/nfpm_${NFPM_VERSION}_Linux_x86_64.tar.gz"
+          echo "${NFPM_SHA256}  ${archive}" | sha256sum --check --status
+          mkdir -p "$install_dir"
+          tar -xzf "$archive" -C "$install_dir" nfpm
+          echo "$install_dir" >> "$GITHUB_PATH"
+
+      - name: Build deb packages
+        id: package
+        shell: bash
+        run: |
+          version=$(jq --raw-output \
+            '.releases[] | select(.app_name == "edinet_cli") | .app_version' \
+            <<<"$PLAN")
+          tag=$(jq --raw-output '.announcement_tag' <<<"$PLAN")
+
+          if [[ -z "$version" || "$version" == "null" || -z "$tag" || "$tag" == "null" ]]; then
+            echo "The release plan does not contain an edinet_cli version and tag." >&2
+            exit 1
+          fi
+
+          repo="$RUNNER_TEMP/site/apt"
+          pool="$repo/pool/main/e/edinet-cli"
+          mkdir -p "$pool"
+
+          for mapping in \
+            "x86_64-unknown-linux-gnu amd64" \
+            "aarch64-unknown-linux-gnu arm64"
+          do
+            read -r target architecture <<<"$mapping"
+            archive="artifacts/edinet_cli-${target}.tar.xz"
+            stage="$RUNNER_TEMP/package-${architecture}"
+
+            if [[ ! -f "$archive" ]]; then
+              echo "Missing release artifact: $archive" >&2
+              exit 1
+            fi
+
+            mkdir -p "$stage"
+            tar -xJf "$archive" -C "$stage" --strip-components=1
+
+            NFPM_ARCH="$architecture" \
+            NFPM_VERSION="$version" \
+            NFPM_BINARY="$stage/edinet" \
+              nfpm package \
+                --config packaging/apt/nfpm.yaml \
+                --packager deb \
+                --target "$pool/edinet-cli_${version}_${architecture}.deb"
+          done
+
+          echo "repo=$repo" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Build and sign APT repository
+        id: repository
+        shell: bash
+        env:
+          REPO: ${{ steps.package.outputs.repo }}
+        run: |
+          if [[ -z "$APT_GPG_PRIVATE_KEY" ]]; then
+            echo "APT_GPG_PRIVATE_KEY is not configured." >&2
+            exit 1
+          fi
+
+          for architecture in amd64 arm64; do
+            packages_dir="$REPO/dists/stable/main/binary-${architecture}"
+            mkdir -p "$packages_dir"
+            (
+              cd "$REPO"
+              dpkg-scanpackages --arch "$architecture" pool /dev/null \
+                > "dists/stable/main/binary-${architecture}/Packages"
+            )
+            gzip --best --keep "$packages_dir/Packages"
+          done
+
+          apt-ftparchive \
+            --config-file packaging/apt/release.conf \
+            release "$REPO/dists/stable" \
+            > "$REPO/dists/stable/Release"
+
+          export GNUPGHOME="$RUNNER_TEMP/gnupg"
+          install -d -m 0700 "$GNUPGHOME"
+          gpg --batch --import <<<"$APT_GPG_PRIVATE_KEY"
+          fingerprint=$(gpg --batch --with-colons --list-secret-keys \
+            | awk -F: '$1 == "fpr" { print $10; exit }')
+
+          if [[ -z "$fingerprint" ]]; then
+            echo "No signing key was found in APT_GPG_PRIVATE_KEY." >&2
+            exit 1
+          fi
+
+          printf '%s' "$APT_GPG_PASSPHRASE" \
+            | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+                --local-user "$fingerprint" --clearsign \
+                --output "$REPO/dists/stable/InRelease" \
+                "$REPO/dists/stable/Release"
+          printf '%s' "$APT_GPG_PASSPHRASE" \
+            | gpg --batch --yes --pinentry-mode loopback --passphrase-fd 0 \
+                --local-user "$fingerprint" --detach-sign \
+                --output "$REPO/dists/stable/Release.gpg" \
+                "$REPO/dists/stable/Release"
+          gpg --batch --export "$fingerprint" \
+            > "$REPO/edinet-cli-archive-keyring.gpg"
+
+      - name: Verify APT repository
+        shell: bash
+        env:
+          REPO: ${{ steps.package.outputs.repo }}
+        run: |
+          for image in ubuntu:22.04 ubuntu:24.04 debian:12 debian:13; do
+            docker run --rm \
+              --volume "$REPO:/repo:ro" \
+              "$image" \
+              sh -euxc '
+                cp /repo/edinet-cli-archive-keyring.gpg /usr/share/keyrings/
+                echo "deb [arch=amd64 signed-by=/usr/share/keyrings/edinet-cli-archive-keyring.gpg] file:/repo stable main" > /etc/apt/sources.list.d/edinet-cli.list
+                apt-get update
+                apt-get install --yes edinet-cli
+                edinet --version
+              '
+          done
+
+      - name: Upload deb packages to GitHub Release
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPO: ${{ steps.package.outputs.repo }}
+          TAG: ${{ steps.package.outputs.tag }}
+        run: gh release upload "$TAG" "$REPO"/pool/main/e/edinet-cli/*.deb --clobber
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v5
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v4
+        with:
+          path: ${{ runner.temp }}/site
+
+      - name: Deploy GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

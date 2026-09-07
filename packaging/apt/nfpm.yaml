@@ -1,0 +1,36 @@
+# yaml-language-server: $schema=https://nfpm.goreleaser.com/schema.json
+
+name: edinet-cli
+arch: ${NFPM_ARCH}
+platform: linux
+version: ${NFPM_VERSION}
+release: 1
+section: utils
+priority: optional
+maintainer: Strike Group <62449493+kotek-7@users.noreply.github.com>
+description: Command-line interface for retrieving and parsing EDINET filings
+homepage: https://github.com/strikegroup/edinet_cli
+license: Apache-2.0
+
+depends:
+  - ca-certificates
+  - libc6 (>= 2.35)
+  - libgcc-s1
+
+contents:
+  - src: ${NFPM_BINARY}
+    dst: /usr/bin/edinet
+    expand: true
+    file_info:
+      mode: 0o755
+  - src: LICENSE
+    dst: /usr/share/doc/edinet-cli/copyright
+  - src: README.md
+    dst: /usr/share/doc/edinet-cli/README.md
+  - src: CHANGELOG.md
+    dst: /usr/share/doc/edinet-cli/CHANGELOG.md
+  - src: THIRD_PARTY_LICENSES.html
+    dst: /usr/share/doc/edinet-cli/THIRD_PARTY_LICENSES.html
+
+deb:
+  compression: xz

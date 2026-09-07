@@ -16,6 +16,7 @@ exclude = [
     "about.hbs",
     "about.toml",
     "docs/*.pdf",
+    "packaging/",
     "release-plz.toml",
     "tools/",
 ]
@@ -43,6 +44,10 @@ targets = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-apple-da
 tap = "strikegroup/homebrew-tap"
 # Publish jobs to run in CI
 publish-jobs = ["homebrew", "./publish-npm"]
+# Jobs to run after a release is announced
+post-announce-jobs = ["./publish-apt"]
+# Permissions for custom GitHub Actions jobs
+github-custom-job-permissions = { publish-apt = { contents = "write", pages = "write", id-token = "write" } }
 # Whether dist should create a Github Release or use an existing draft
 create-release = false
 # Whether CI should trigger releases with dispatches instead of tag pushes
@@ -60,7 +65,7 @@ clap = { version = "4.5.58", features = ["derive"] }
 csv = "1.4.0"
 directories = "6.0.0"
 dotenvy = "0.15.7"
-reqwest = "0.12.25"
+reqwest = { version = "0.12.25", default-features = false, features = ["rustls-tls"] }
 serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.145"
 sea-orm = { version = "1.1.17", features = ["sqlx-sqlite", "runtime-tokio-rustls", "macros"] }
