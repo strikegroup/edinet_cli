@@ -10,36 +10,30 @@ EDINET から有価証券報告書を取得し、主要項目を JSON で確認�
 
 ## インストール
 
-### Cargo
-
-```bash
-cargo install --locked edinet_cli
-```
-
 ### Homebrew
 
 ```bash
 brew install strikegroup/tap/edinet
 ```
 
-### APT（Ubuntu / Debian）
-
-```bash
-sudo apt update
-sudo apt install --yes ca-certificates curl
-sudo install -d -m 0755 /etc/apt/keyrings
-curl -fsSL https://strikegroup.github.io/edinet_cli/apt/edinet-cli-archive-keyring.gpg \
-  | sudo tee /etc/apt/keyrings/edinet-cli-archive-keyring.gpg > /dev/null
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/edinet-cli-archive-keyring.gpg] https://strikegroup.github.io/edinet_cli/apt stable main" \
-  | sudo tee /etc/apt/sources.list.d/edinet-cli.list > /dev/null
-sudo apt update
-sudo apt install edinet-cli
-```
-
 ### npm
 
 ```bash
 npm install --global edinet-cli
+```
+
+### APT（Ubuntu / Debian）
+
+```bash
+wget -O - https://strikegroup.github.io/edinet_cli/apt/edinet-cli-archive-keyring.gpg | sudo tee /usr/share/keyrings/edinet-cli-archive-keyring.gpg > /dev/null
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/edinet-cli-archive-keyring.gpg] https://strikegroup.github.io/edinet_cli/apt stable main" | sudo tee /etc/apt/sources.list.d/edinet-cli.list
+sudo apt update && sudo apt install edinet-cli
+```
+
+### Cargo
+
+```bash
+cargo install --locked edinet_cli
 ```
 
 ## セットアップ
