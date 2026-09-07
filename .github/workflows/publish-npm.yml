@@ -1,0 +1,51 @@
+name: Publish npm
+
+on:
+  workflow_call:
+    inputs:
+      plan:
+        description: cargo-dist release plan
+        required: true
+        type: string
+
+permissions:
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: ubuntu-22.04
+    env:
+      PLAN: ${{ inputs.plan }}
+
+    steps:
+      - name: Download npm packages
+        uses: actions/download-artifact@v8
+        with:
+          pattern: artifacts-*
+          path: npm/
+          merge-multiple: true
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "24"
+          registry-url: https://registry.npmjs.org
+          package-manager-cache: false
+
+      - name: Publish npm packages
+        shell: bash
+        run: |
+          mapfile -t packages < <(
+            jq --raw-output \
+              '.releases[].artifacts[] | select(endswith("-npm-package.tar.gz"))' \
+              <<<"$PLAN"
+          )
+
+          if (( ${#packages[@]} == 0 )); then
+            echo "No npm package was found in the cargo-dist release plan." >&2
+            exit 1
+          fi
+
+          for package in "${packages[@]}"; do
+            npm publish --access public "./npm/${package}"
+          done

@@ -4,6 +4,7 @@
 *.db*
 /data
 /docs/*
+# docs のドキュメントは development.md 以外は原則無視すること
 !/docs/development.md
 edinet
 temp

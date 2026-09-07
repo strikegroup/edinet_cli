@@ -22,6 +22,12 @@ cargo install --locked edinet_cli
 brew install strikegroup/tap/edinet
 ```
 
+### npm
+
+```bash
+npm install --global edinet-cli
+```
+
 ## セットアップ
 
 ### API キーの登録

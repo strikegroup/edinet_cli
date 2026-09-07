@@ -26,6 +26,7 @@ path = "src/main.rs"
 
 [package.metadata.dist]
 formula = "edinet"
+npm-package = "edinet-cli"
 include = ["THIRD_PARTY_LICENSES.html"]
 
 # Config for 'dist'
@@ -35,13 +36,13 @@ cargo-dist-version = "0.32.0"
 # CI backends to support
 ci = "github"
 # The installers to generate for each app
-installers = ["homebrew"]
+installers = ["homebrew", "npm"]
 # Target platforms to build apps for (Rust target-triple syntax)
 targets = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-apple-darwin", "x86_64-unknown-linux-gnu", "x86_64-pc-windows-msvc"]
 # A GitHub repo to push Homebrew formulas to
 tap = "strikegroup/homebrew-tap"
 # Publish jobs to run in CI
-publish-jobs = ["homebrew"]
+publish-jobs = ["homebrew", "./publish-npm"]
 # Whether dist should create a Github Release or use an existing draft
 create-release = false
 # Whether CI should trigger releases with dispatches instead of tag pushes
