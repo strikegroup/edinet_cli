@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.3](https://github.com/strikegroup/edinet_cli/compare/v0.0.2...v0.0.3) - 2026-09-07
+
+### Other
+
+- npm 公開設定
+- ライセンス表記を実行
+- Revert "chore: ライセンス表記を実行"
+- Revert "chore: ライセンス表記を更新"
+- ライセンス表記を更新
+- ライセンス表記を実行
+- ライセンス更新
+- ドキュメント更新
+
 ## [0.0.2](https://github.com/strikegroup/edinet_cli/compare/v0.0.1...v0.0.2) - 2026-08-31
 
 ### Added
