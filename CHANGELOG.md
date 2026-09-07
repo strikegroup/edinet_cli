@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.4](https://github.com/strikegroup/edinet_cli/compare/v0.0.3...v0.0.4) - 2026-09-07
+
+### Other
+
+- APT 公開設定
+
 ## [0.0.3](https://github.com/strikegroup/edinet_cli/compare/v0.0.2...v0.0.3) - 2026-09-07
 
 ### Other
