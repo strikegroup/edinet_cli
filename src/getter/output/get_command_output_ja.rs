@@ -5,7 +5,9 @@
 use crate::getter::asr_report::{
     AsrReport, BalanceSheetItems, BalanceSheetPeriods, BusinessOverview, BusinessResultsPeriod,
     CompanyOverview, CorporateInformation, Facilities, FinancialInformation, GovernanceMetrics,
-    HumanCapitalMetrics, PrimaryFinancialStatements, ProfitAndLossItems, ProfitAndLossPeriods,
+    HumanCapitalMetrics, PolicyShareholding, PolicyShareholdingCategory,
+    PolicyShareholdingHolderScope, PolicyShareholdingPeriod, PrimaryFinancialStatements,
+    ProfitAndLossItems, ProfitAndLossPeriods,
 };
 use crate::store::asr_document_metadata::AsrDocumentMetadata;
 
@@ -194,6 +196,8 @@ impl From<&Facilities> for FacilitiesJa {
 pub struct CorporateInformationJa {
     #[serde(rename = "株式の保有状況")]
     pub shareholding: Option<String>,
+    #[serde(rename = "政策保有株式（銘柄別）")]
+    pub policy_shareholdings: Vec<PolicyShareholdingJa>,
     #[serde(rename = "大株主の状況")]
     pub major_shareholders: Option<String>,
     #[serde(rename = "配当政策")]
@@ -212,12 +216,101 @@ impl From<&CorporateInformation> for CorporateInformationJa {
     fn from(value: &CorporateInformation) -> Self {
         Self {
             shareholding: value.shareholding.clone(),
+            policy_shareholdings: value
+                .policy_shareholdings
+                .iter()
+                .map(PolicyShareholdingJa::from)
+                .collect(),
             major_shareholders: value.major_shareholders.clone(),
             dividend_policy: value.dividend_policy.clone(),
             officers: value.officers.clone(),
             corporate_governance: value.corporate_governance.clone(),
             officer_compensation: value.officer_compensation.clone(),
             governance_metrics: GovernanceMetricsJa::from(&value.governance_metrics),
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct PolicyShareholdingJa {
+    #[serde(rename = "保有区分")]
+    pub category: String,
+    #[serde(rename = "開示主体")]
+    pub holder_scope: String,
+    #[serde(rename = "保有会社名")]
+    pub holder_name: Option<String>,
+    #[serde(rename = "行番号")]
+    pub row_number: u32,
+    #[serde(rename = "銘柄")]
+    pub issue_name: String,
+    #[serde(rename = "当事業年度")]
+    pub current: PolicyShareholdingPeriodJa,
+    #[serde(rename = "前事業年度")]
+    pub prior: PolicyShareholdingPeriodJa,
+    #[serde(rename = "保有目的")]
+    pub purpose_of_shareholding: Option<String>,
+    #[serde(rename = "業務提携等の概要")]
+    pub business_alliance_overview: Option<String>,
+    #[serde(rename = "定量的な保有効果")]
+    pub quantitative_effects: Option<String>,
+    #[serde(rename = "株式数が増加した理由")]
+    pub reason_for_increase: Option<String>,
+    #[serde(rename = "保有目的等（結合項目）")]
+    pub combined_purpose_and_effects: Option<String>,
+    #[serde(rename = "発行者による提出会社株式の保有の有無")]
+    pub issuer_holds_reporting_company_shares: Option<String>,
+}
+
+impl From<&PolicyShareholding> for PolicyShareholdingJa {
+    fn from(value: &PolicyShareholding) -> Self {
+        Self {
+            category: match value.category {
+                PolicyShareholdingCategory::SpecifiedInvestment => "特定投資株式",
+                PolicyShareholdingCategory::DeemedHolding => "みなし保有株式",
+            }
+            .to_owned(),
+            holder_scope: match value.holder_scope {
+                PolicyShareholdingHolderScope::Reporting => "提出会社",
+                PolicyShareholdingHolderScope::Largest => "最大保有会社",
+                PolicyShareholdingHolderScope::SecondLargest => "投資株式計上額が次に大きい会社",
+            }
+            .to_owned(),
+            holder_name: value.holder_name.clone(),
+            row_number: value.row_number,
+            issue_name: value.issue_name.clone(),
+            current: PolicyShareholdingPeriodJa::from(&value.current),
+            prior: PolicyShareholdingPeriodJa::from(&value.prior),
+            purpose_of_shareholding: value.purpose_of_shareholding.clone(),
+            business_alliance_overview: value.business_alliance_overview.clone(),
+            quantitative_effects: value.quantitative_effects.clone(),
+            reason_for_increase: value.reason_for_increase.clone(),
+            combined_purpose_and_effects: value.combined_purpose_and_effects.clone(),
+            issuer_holds_reporting_company_shares: value
+                .issuer_holds_reporting_company_shares
+                .clone(),
+        }
+    }
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+pub struct PolicyShareholdingPeriodJa {
+    #[serde(rename = "株式数")]
+    pub shares: Option<i64>,
+    #[serde(rename = "貸借対照表計上額")]
+    pub book_value: Option<i64>,
+    #[serde(rename = "株式数記載省略")]
+    pub shares_not_disclosed: bool,
+    #[serde(rename = "貸借対照表計上額記載省略")]
+    pub book_value_not_disclosed: bool,
+}
+
+impl From<&PolicyShareholdingPeriod> for PolicyShareholdingPeriodJa {
+    fn from(value: &PolicyShareholdingPeriod) -> Self {
+        Self {
+            shares: value.shares,
+            book_value: value.book_value,
+            shares_not_disclosed: value.shares_not_disclosed,
+            book_value_not_disclosed: value.book_value_not_disclosed,
         }
     }
 }
@@ -577,6 +670,26 @@ mod tests {
             facilities: Facilities::default(),
             corporate_information: CorporateInformation {
                 shareholding: None,
+                policy_shareholdings: vec![PolicyShareholding {
+                    category: PolicyShareholdingCategory::DeemedHolding,
+                    holder_scope: PolicyShareholdingHolderScope::Largest,
+                    holder_name: Some("テスト銀行".to_owned()),
+                    row_number: 1,
+                    issue_name: "テスト銘柄".to_owned(),
+                    current: PolicyShareholdingPeriod {
+                        shares: Some(100),
+                        book_value: Some(1000),
+                        shares_not_disclosed: false,
+                        book_value_not_disclosed: false,
+                    },
+                    prior: PolicyShareholdingPeriod::default(),
+                    purpose_of_shareholding: None,
+                    business_alliance_overview: None,
+                    quantitative_effects: None,
+                    reason_for_increase: None,
+                    combined_purpose_and_effects: Some("保有目的本文".to_owned()),
+                    issuer_holds_reporting_company_shares: Some("無".to_owned()),
+                }],
                 major_shareholders: None,
                 dividend_policy: None,
                 officers: None,
@@ -637,6 +750,15 @@ mod tests {
         assert_eq!(
             value["有価証券報告書"]["第4 提出会社の状況"]["ガバナンス指標"]["女性役員比率"],
             0.25
+        );
+        assert_eq!(
+            value["有価証券報告書"]["第4 提出会社の状況"]["政策保有株式（銘柄別）"][0]["保有区分"],
+            "みなし保有株式"
+        );
+        assert_eq!(
+            value["有価証券報告書"]["第4 提出会社の状況"]["政策保有株式（銘柄別）"][0]["当事業年度"]
+                ["株式数"],
+            100
         );
         assert_eq!(
             value["有価証券報告書"]["第5 経理の状況"]["主要財務諸表"]["貸借対照表 (B/S)"]["当期"]["資産"],

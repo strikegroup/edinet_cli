@@ -59,6 +59,11 @@ pub struct Facilities {
 /// 第4 提出会社の状況。
 pub struct CorporateInformation {
     pub shareholding: Option<String>,
+    /// 特定投資株式・みなし保有株式の銘柄別明細。
+    ///
+    /// 持株会社の提出書類では提出会社自身に加え、最大保有会社及び投資株式計上額が
+    /// 次に大きい会社の明細が開示されるため、`holder_scope` で開示主体を区別する。
+    pub policy_shareholdings: Vec<PolicyShareholding>,
     pub major_shareholders: Option<String>,
     pub dividend_policy: Option<String>,
     pub officers: Option<String>,
@@ -68,6 +73,55 @@ pub struct CorporateInformation {
     ///
     /// 女性役員比率や役員報酬総額など、第4 提出会社の状況で読むことが多い数値をまとめる。
     pub governance_metrics: GovernanceMetrics,
+}
+
+#[derive(Debug, Clone, Copy, serde::Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+/// 政策保有株式の開示区分。
+pub enum PolicyShareholdingCategory {
+    SpecifiedInvestment,
+    DeemedHolding,
+}
+
+#[derive(Debug, Clone, Copy, serde::Serialize, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+/// 銘柄別明細を開示している会社の位置付け。
+pub enum PolicyShareholdingHolderScope {
+    #[serde(rename = "reporting_company")]
+    Reporting,
+    #[serde(rename = "largest_holding_company")]
+    Largest,
+    #[serde(rename = "second_largest_holding_company")]
+    SecondLargest,
+}
+
+#[derive(Debug, Clone, Default, serde::Serialize, PartialEq, Eq)]
+/// 銘柄別明細の一期間分の数値。
+pub struct PolicyShareholdingPeriod {
+    pub shares: Option<i64>,
+    pub book_value: Option<i64>,
+    pub shares_not_disclosed: bool,
+    pub book_value_not_disclosed: bool,
+}
+
+#[derive(Debug, Clone, serde::Serialize, PartialEq, Eq)]
+/// 特定投資株式又はみなし保有株式の一銘柄分。
+pub struct PolicyShareholding {
+    pub category: PolicyShareholdingCategory,
+    pub holder_scope: PolicyShareholdingHolderScope,
+    /// 最大保有会社等の名称。提出会社の場合は書類 metadata の提出者名を参照する。
+    pub holder_name: Option<String>,
+    pub row_number: u32,
+    pub issue_name: String,
+    pub current: PolicyShareholdingPeriod,
+    pub prior: PolicyShareholdingPeriod,
+    pub purpose_of_shareholding: Option<String>,
+    pub business_alliance_overview: Option<String>,
+    pub quantitative_effects: Option<String>,
+    pub reason_for_increase: Option<String>,
+    /// 複数の説明項目が一つのセル・一つの XBRL fact で開示された場合の原文。
+    pub combined_purpose_and_effects: Option<String>,
+    pub issuer_holds_reporting_company_shares: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize)]
