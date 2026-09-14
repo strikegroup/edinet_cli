@@ -374,15 +374,6 @@ edinet update --key <YOUR_EDINET_API_KEY>
 # 直近3年の未更新日を更新
 edinet update --years 3
 
-# 最大8件の日次API取得を並列実行
-edinet update --years 3 --concurrency 8
-
-# 日次API取得を直列実行
-edinet update --years 3 --sequential
-
-# 更新済み日付も含めて直近3年を再取得
-edinet update --years 3 --force
-
 # 指定期間を更新
 edinet update --from 2026-04-01 --to 2026-04-14
 
@@ -540,3 +531,4 @@ edinet status
 ## ライセンス
 
 このソフトウェアは [Apache License 2.0](LICENSE) で提供します。
+なお、本ソフトウェアは金融庁・EDINETの公式プロジェクトではありません。
