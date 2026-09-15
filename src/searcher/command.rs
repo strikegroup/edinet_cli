@@ -174,9 +174,13 @@ fn build_search_condition(
     Ok((
         crate::searcher::search_asr_documents::SearchCondition {
             query: query.clone(),
-            query_sec_code: query.map(normalize_sec_code),
+            query_sec_code: query.as_deref().and_then(|sec_code| {
+                crate::searcher::search_asr_documents::SecCode::new(sec_code).ok()
+            }),
             edinet_code: non_empty(args.edinet_code),
-            sec_code: non_empty(args.sec_code).map(normalize_sec_code),
+            sec_code: non_empty(args.sec_code)
+                .map(|sec_code| crate::searcher::search_asr_documents::SecCode::new(&sec_code))
+                .transpose()?,
             jcn: non_empty(args.jcn),
             filer_name: non_empty(args.filer_name),
             submitted_date,
@@ -215,10 +219,63 @@ fn non_empty(value: Option<String>) -> Option<String> {
     })
 }
 
-fn normalize_sec_code(value: String) -> String {
-    if value.len() == 4 && value.bytes().all(|byte| byte.is_ascii_digit()) {
-        format!("{value}0")
-    } else {
-        value
+#[cfg(test)]
+mod tests {
+    use super::{SearchArgs, SearchSortArg, build_search_condition};
+
+    fn search_args(query: Option<&str>, sec_code: Option<&str>) -> SearchArgs {
+        SearchArgs {
+            query: query.map(str::to_owned),
+            edinet_code: None,
+            sec_code: sec_code.map(str::to_owned),
+            filer_name: None,
+            jcn: None,
+            submitted_date: None,
+            submitted_from: None,
+            submitted_to: None,
+            submitted_year: None,
+            limit: 0,
+            page: 1,
+            sort: SearchSortArg::SubmitDateDesc,
+            json: false,
+        }
+    }
+
+    #[test]
+    fn treats_a_regular_query_as_optional_sec_code() -> anyhow::Result<()> {
+        let (condition, _) = build_search_condition(search_args(Some("ストライク"), None))?;
+
+        assert_eq!(condition.query.as_deref(), Some("ストライク"));
+        assert_eq!(condition.query_sec_code, None);
+        Ok(())
+    }
+
+    #[test]
+    fn normalizes_a_sec_code_query_for_the_combined_search() -> anyhow::Result<()> {
+        let (condition, _) = build_search_condition(search_args(Some("7203"), None))?;
+
+        assert_eq!(
+            condition.query_sec_code.as_ref().map(|code| code.as_str()),
+            Some("72030")
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn normalizes_an_explicit_sec_code() -> anyhow::Result<()> {
+        let (condition, _) = build_search_condition(search_args(None, Some("130A")))?;
+
+        assert_eq!(
+            condition.sec_code.as_ref().map(|code| code.as_str()),
+            Some("130A0")
+        );
+        Ok(())
+    }
+
+    #[test]
+    fn rejects_an_invalid_explicit_sec_code() {
+        let result = build_search_condition(search_args(None, Some("720")));
+
+        assert!(result.is_err());
     }
 }

@@ -368,6 +368,27 @@ mod tests {
     }
 
     #[test]
+    fn get_accepts_sec_code_and_rejects_it_with_doc_id() {
+        assert!(
+            cli_command()
+                .try_get_matches_from(["edinet", "get", "--sec-code", "7203"])
+                .is_ok()
+        );
+        assert!(
+            cli_command()
+                .try_get_matches_from([
+                    "edinet",
+                    "get",
+                    "--doc-id",
+                    "S100TEST",
+                    "--sec-code",
+                    "7203",
+                ])
+                .is_err()
+        );
+    }
+
+    #[test]
     fn get_and_download_reject_removed_date_filters() {
         for args in [
             &["edinet", "get", "--date", "2025-01-01"][..],

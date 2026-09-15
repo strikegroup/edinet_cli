@@ -12,6 +12,7 @@ use crate::store::asr_document_metadata::AsrDocumentMetadata;
 pub async fn find_asr_document_metadata(
     db: &DatabaseConnection,
     edinet_code: Option<&str>,
+    sec_code: Option<&str>,
     filer_name: Option<&str>,
     submitted_year: Option<u16>,
 ) -> anyhow::Result<Option<AsrDocumentMetadata>> {
@@ -19,7 +20,9 @@ pub async fn find_asr_document_metadata(
         query: None,
         query_sec_code: None,
         edinet_code: edinet_code.map(str::to_owned),
-        sec_code: None,
+        sec_code: sec_code
+            .map(crate::searcher::search_asr_documents::SecCode::new)
+            .transpose()?,
         jcn: None,
         filer_name: filer_name.map(str::to_owned),
         submitted_date: None,

@@ -13,12 +13,14 @@ pub enum OutputLanguage {
 #[derive(clap::Args, Debug)]
 #[command(group(
     ArgGroup::new("filter")
-        .args(["edinet_code", "company", "submitted_year"])
+        .args(["edinet_code", "sec_code", "company", "submitted_year"])
         .multiple(true)
 ))]
 pub struct GetArgs {
     #[arg(long, short = 'e', help = "EDINET コードで対象書類を絞り込みます")]
     pub edinet_code: Option<String>,
+    #[arg(long, short = 's', help = "証券コードで対象書類を絞り込みます")]
+    pub sec_code: Option<String>,
     #[arg(
         long,
         short = 'c',
@@ -62,6 +64,7 @@ pub async fn run(args: GetArgs) -> anyhow::Result<()> {
         Some(crate::app_config::resolve_api_key(args.key.as_deref())?)
     };
     if args.edinet_code.is_none()
+        && args.sec_code.is_none()
         && args.company.is_none()
         && args.submitted_year.is_none()
         && args.doc_id.is_none()
@@ -72,7 +75,10 @@ pub async fn run(args: GetArgs) -> anyhow::Result<()> {
     }
 
     if args.doc_id.is_some()
-        && (args.edinet_code.is_some() || args.company.is_some() || args.submitted_year.is_some())
+        && (args.edinet_code.is_some()
+            || args.sec_code.is_some()
+            || args.company.is_some()
+            || args.submitted_year.is_some())
     {
         return Err(anyhow::anyhow!(
             "--doc-id cannot be combined with other query parameters"
@@ -94,6 +100,7 @@ pub async fn run(args: GetArgs) -> anyhow::Result<()> {
     let metadata = crate::getter::find_asr_document::find_asr_document_metadata(
         &db,
         args.edinet_code.as_deref(),
+        args.sec_code.as_deref(),
         args.company.as_deref(),
         args.submitted_year.map(|year| year.get()),
     )

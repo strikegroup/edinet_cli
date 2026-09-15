@@ -16,12 +16,36 @@ pub enum SearchSort {
     SubmitDateAsc,
 }
 
+#[derive(Debug, Clone, Eq, PartialEq)]
+pub struct SecCode(String);
+
+impl SecCode {
+    pub fn new(sec_code: &str) -> anyhow::Result<Self> {
+        let sec_code = sec_code.trim().to_owned();
+        if sec_code.is_empty() {
+            anyhow::bail!("SecCode cannot be empty");
+        }
+        if !sec_code.bytes().all(|byte| byte.is_ascii_alphanumeric()) {
+            anyhow::bail!("SecCode must be all alphanumeric");
+        }
+        match sec_code.len() {
+            4 => Ok(Self(format!("{sec_code}0"))),
+            5 => Ok(Self(sec_code)),
+            _ => anyhow::bail!("SecCode must be 4 or 5 characters long"),
+        }
+    }
+
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
 #[derive(Debug)]
 pub struct SearchCondition {
     pub query: Option<String>,
-    pub query_sec_code: Option<String>,
+    pub query_sec_code: Option<SecCode>,
     pub edinet_code: Option<String>,
-    pub sec_code: Option<String>,
+    pub sec_code: Option<SecCode>,
     pub jcn: Option<String>,
     pub filer_name: Option<String>,
     pub submitted_date: Option<String>,
@@ -51,7 +75,7 @@ pub async fn search_asr_document_metadatas(
 
         if let Some(query_sec_code) = &condition.query_sec_code {
             query_condition =
-                query_condition.add(document_metadata::Column::SecCode.eq(query_sec_code));
+                query_condition.add(document_metadata::Column::SecCode.eq(query_sec_code.as_str()));
         }
 
         filters = filters.add(query_condition);
@@ -60,7 +84,7 @@ pub async fn search_asr_document_metadatas(
         filters = filters.add(document_metadata::Column::EdinetCode.eq(edinet_code));
     }
     if let Some(sec_code) = &condition.sec_code {
-        filters = filters.add(document_metadata::Column::SecCode.eq(sec_code));
+        filters = filters.add(document_metadata::Column::SecCode.eq(sec_code.as_str()));
     }
     if let Some(jcn) = &condition.jcn {
         filters = filters.add(document_metadata::Column::Jcn.eq(jcn));
@@ -132,7 +156,31 @@ fn available_asr_condition() -> Condition {
 
 #[cfg(test)]
 mod tests {
-    use super::submission_year_bounds;
+    use super::{SecCode, submission_year_bounds};
+
+    #[test]
+    fn normalizes_four_character_sec_codes() -> anyhow::Result<()> {
+        assert_eq!(SecCode::new("7203")?.as_str(), "72030");
+        assert_eq!(SecCode::new("130A")?.as_str(), "130A0");
+        Ok(())
+    }
+
+    #[test]
+    fn preserves_five_character_sec_codes() -> anyhow::Result<()> {
+        assert_eq!(SecCode::new("72030")?.as_str(), "72030");
+        assert_eq!(SecCode::new("130A0")?.as_str(), "130A0");
+        Ok(())
+    }
+
+    #[test]
+    fn rejects_invalid_sec_codes() {
+        for sec_code in ["", "720", "720300", "72-3", "トヨタ"] {
+            assert!(
+                SecCode::new(sec_code).is_err(),
+                "`{sec_code}` must be rejected"
+            );
+        }
+    }
 
     #[test]
     fn builds_full_submission_year_bounds() {
