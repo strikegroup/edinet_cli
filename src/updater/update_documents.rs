@@ -236,7 +236,7 @@ mod tests {
     use super::dates_in_range;
 
     #[test]
-    fn builds_inclusive_date_range() {
+    fn 更新対象日は開始日と終了日を含み逆転した期間は空になる() {
         let start = chrono::NaiveDate::from_ymd_opt(2026, 1, 30).unwrap();
         let end = chrono::NaiveDate::from_ymd_opt(2026, 2, 1).unwrap();
 
@@ -248,13 +248,6 @@ mod tests {
                 chrono::NaiveDate::from_ymd_opt(2026, 2, 1).unwrap(),
             ]
         );
-    }
-
-    #[test]
-    fn returns_empty_for_reversed_date_range() {
-        let start = chrono::NaiveDate::from_ymd_opt(2026, 2, 1).unwrap();
-        let end = chrono::NaiveDate::from_ymd_opt(2026, 1, 31).unwrap();
-
-        assert!(dates_in_range(&start, &end).unwrap().is_empty());
+        assert!(dates_in_range(&end, &start).unwrap().is_empty());
     }
 }

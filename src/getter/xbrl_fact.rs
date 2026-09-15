@@ -163,7 +163,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn indexes_fact_by_element_and_context() {
+    fn xbrlの値は要素とコンテキストの組み合わせで参照できる() {
         let index = XbrlFactIndex::new(vec![XbrlFact {
             element_id: "jpcrp_cor:BusinessRisksTextBlock".to_owned(),
             item_name: Some("事業等のリスク".to_owned()),
@@ -183,7 +183,7 @@ mod tests {
     }
 
     #[test]
-    fn parses_missing_numeric_values_as_none() {
+    fn xbrlの欠損表現は文字列にも数値にも変換しない() {
         let fact = XbrlFact {
             element_id: "jpcrp_cor:NetIncomeLossSummaryOfBusinessResults".to_owned(),
             item_name: None,

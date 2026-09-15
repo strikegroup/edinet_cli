@@ -164,24 +164,24 @@ mod tests {
     use super::calculate_year_window_start;
 
     #[test]
-    fn calculates_inclusive_calendar_year_window() {
-        let today = chrono::NaiveDate::from_ymd_opt(2026, 8, 11).unwrap();
-        let years = std::num::NonZeroU32::new(2).unwrap();
+    fn 更新年数は当日を含む暦年範囲としてうるう日も欠かさず計算する() {
+        let scenarios = [
+            ((2026, 8, 11), 2, (2024, 8, 12)),
+            ((2025, 2, 28), 1, (2024, 2, 29)),
+        ];
 
-        assert_eq!(
-            calculate_year_window_start(&today, years).unwrap(),
-            chrono::NaiveDate::from_ymd_opt(2024, 8, 12).unwrap()
-        );
-    }
+        for ((year, month, day), years, (expected_year, expected_month, expected_day)) in scenarios
+        {
+            let today = chrono::NaiveDate::from_ymd_opt(year, month, day).unwrap();
+            let years = std::num::NonZeroU32::new(years).unwrap();
+            let expected =
+                chrono::NaiveDate::from_ymd_opt(expected_year, expected_month, expected_day)
+                    .unwrap();
 
-    #[test]
-    fn calculates_calendar_year_window_across_leap_day() {
-        let today = chrono::NaiveDate::from_ymd_opt(2025, 2, 28).unwrap();
-        let years = std::num::NonZeroU32::new(1).unwrap();
-
-        assert_eq!(
-            calculate_year_window_start(&today, years).unwrap(),
-            chrono::NaiveDate::from_ymd_opt(2024, 2, 29).unwrap()
-        );
+            assert_eq!(
+                calculate_year_window_start(&today, years).unwrap(),
+                expected
+            );
+        }
     }
 }

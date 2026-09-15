@@ -166,7 +166,7 @@ mod tests {
     }
 
     #[test]
-    fn extracts_a_regular_entry() {
+    fn ダウンロードしたzipを指定先へ展開する() {
         let temp_dir = unique_temp_dir("regular");
         std::fs::create_dir_all(&temp_dir).expect("temporary directory must be creatable");
         let archive_path = temp_dir.join("archive.zip");
@@ -184,7 +184,7 @@ mod tests {
     }
 
     #[test]
-    fn rejects_an_entry_that_escapes_the_destination() {
+    fn zip内のパスで展開先ディレクトリの外へ書き込めない() {
         let temp_dir = unique_temp_dir("traversal");
         std::fs::create_dir_all(&temp_dir).expect("temporary directory must be creatable");
         let archive_path = temp_dir.join("archive.zip");

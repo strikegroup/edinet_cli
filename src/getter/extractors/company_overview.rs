@@ -336,7 +336,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn extracts_business_results_by_context_priority() {
+    fn 経営指標は連結を優先し当期と過年度を分けて抽出する() {
         let index = XbrlFactIndex::new(vec![
             fact(
                 "jpcrp_cor:OperatingRevenue1SummaryOfBusinessResults",
@@ -376,63 +376,48 @@ mod tests {
     }
 
     #[test]
-    fn extracts_net_sales_as_operating_revenue_for_general_business() {
-        let index = XbrlFactIndex::new(vec![fact(
-            "jpcrp_cor:NetSalesSummaryOfBusinessResults",
-            "CurrentYearDuration_NonConsolidatedMember",
-            "18138469000",
-        )]);
+    fn 業種ごとに異なる売上要素を売上高または営業収益として扱う() {
+        let scenarios = [
+            (
+                "jpcrp_cor:NetSalesSummaryOfBusinessResults",
+                "CurrentYearDuration_NonConsolidatedMember",
+                "18138469000",
+                18_138_469_000,
+            ),
+            (
+                "jpcrp_cor:RevenueKeyFinancialData",
+                "CurrentYearDuration",
+                "10832411000",
+                10_832_411_000,
+            ),
+            (
+                "jpcrp_cor:OperatingRevenue2SummaryOfBusinessResults",
+                "CurrentYearDuration",
+                "16447000000",
+                16_447_000_000,
+            ),
+            (
+                "jpcrp_cor:OrdinaryIncomeSummaryOfBusinessResults",
+                "CurrentYearDuration",
+                "9002775000000",
+                9_002_775_000_000,
+            ),
+        ];
 
-        let overview = extract_company_overview(&index);
-        let current = &overview.business_results_summary[0];
+        for (element_id, context_id, value, expected) in scenarios {
+            let index = XbrlFactIndex::new(vec![fact(element_id, context_id, value)]);
+            let overview = extract_company_overview(&index);
 
-        assert_eq!(current.operating_revenue, Some(18138469000));
+            assert_eq!(
+                overview.business_results_summary[0].operating_revenue,
+                Some(expected),
+                "{element_id} を売上高・営業収益として扱うべき"
+            );
+        }
     }
 
     #[test]
-    fn extracts_key_financial_data_revenue_as_operating_revenue() {
-        let index = XbrlFactIndex::new(vec![fact(
-            "jpcrp_cor:RevenueKeyFinancialData",
-            "CurrentYearDuration",
-            "10832411000",
-        )]);
-
-        let overview = extract_company_overview(&index);
-        let current = &overview.business_results_summary[0];
-
-        assert_eq!(current.operating_revenue, Some(10832411000));
-    }
-
-    #[test]
-    fn extracts_operating_revenue2_as_operating_revenue() {
-        let index = XbrlFactIndex::new(vec![fact(
-            "jpcrp_cor:OperatingRevenue2SummaryOfBusinessResults",
-            "CurrentYearDuration",
-            "16447000000",
-        )]);
-
-        let overview = extract_company_overview(&index);
-        let current = &overview.business_results_summary[0];
-
-        assert_eq!(current.operating_revenue, Some(16447000000));
-    }
-
-    #[test]
-    fn extracts_ordinary_income_summary_as_operating_revenue() {
-        let index = XbrlFactIndex::new(vec![fact(
-            "jpcrp_cor:OrdinaryIncomeSummaryOfBusinessResults",
-            "CurrentYearDuration",
-            "9002775000000",
-        )]);
-
-        let overview = extract_company_overview(&index);
-        let current = &overview.business_results_summary[0];
-
-        assert_eq!(current.operating_revenue, Some(9002775000000));
-    }
-
-    #[test]
-    fn extracts_additional_business_result_metrics() {
+    fn 経営指標から株式と収益性とキャッシュフローと従業員情報を抽出する() {
         let index = XbrlFactIndex::new(vec![
             fact(
                 CAPITAL_STOCK,
@@ -482,49 +467,28 @@ mod tests {
     }
 
     #[test]
-    fn treats_dash_dividend_per_share_as_zero() {
-        let index = XbrlFactIndex::new(vec![
-            fact(DIVIDEND_PER_SHARE, "CurrentYearDuration", "－"),
-            fact(EARNINGS_PER_SHARE, "CurrentYearDuration", "100.0"),
-        ]);
+    fn 配当性向は配当なしを0とし利益が正の場合だけ補完する() {
+        let scenarios = [
+            ("－", "100.0", Some(0.0), Some(0.0)),
+            ("25.0", "100.0", Some(25.0), Some(0.25)),
+            ("10.0", "-50.0", Some(10.0), None),
+        ];
 
-        let overview = extract_company_overview(&index);
-        let current = &overview.business_results_summary[0];
+        for (dividend, earnings, expected_dividend, expected_ratio) in scenarios {
+            let index = XbrlFactIndex::new(vec![
+                fact(DIVIDEND_PER_SHARE, "CurrentYearDuration", dividend),
+                fact(EARNINGS_PER_SHARE, "CurrentYearDuration", earnings),
+            ]);
+            let overview = extract_company_overview(&index);
+            let current = &overview.business_results_summary[0];
 
-        assert_eq!(current.dividend_per_share, Some(0.0));
-        assert_eq!(current.payout_ratio, Some(0.0));
+            assert_eq!(current.dividend_per_share, expected_dividend);
+            assert_eq!(current.payout_ratio, expected_ratio);
+        }
     }
 
     #[test]
-    fn derives_payout_ratio_when_explicit_fact_is_missing() {
-        let index = XbrlFactIndex::new(vec![
-            fact(DIVIDEND_PER_SHARE, "CurrentYearDuration", "25.0"),
-            fact(EARNINGS_PER_SHARE, "CurrentYearDuration", "100.0"),
-        ]);
-
-        let overview = extract_company_overview(&index);
-        let current = &overview.business_results_summary[0];
-
-        assert_eq!(current.dividend_per_share, Some(25.0));
-        assert_eq!(current.payout_ratio, Some(0.25));
-    }
-
-    #[test]
-    fn keeps_payout_ratio_empty_when_earnings_per_share_is_not_positive() {
-        let index = XbrlFactIndex::new(vec![
-            fact(DIVIDEND_PER_SHARE, "CurrentYearDuration", "10.0"),
-            fact(EARNINGS_PER_SHARE, "CurrentYearDuration", "-50.0"),
-        ]);
-
-        let overview = extract_company_overview(&index);
-        let current = &overview.business_results_summary[0];
-
-        assert_eq!(current.dividend_per_share, Some(10.0));
-        assert_eq!(current.payout_ratio, None);
-    }
-
-    #[test]
-    fn extracts_ifrs_business_result_metrics() {
+    fn ifrsの経営指標も共通の経営指標へ抽出する() {
         let index = XbrlFactIndex::new(vec![
             fact(
                 PROFIT_LOSS_ATTRIBUTABLE_TO_OWNERS_OF_PARENT_IFRS,

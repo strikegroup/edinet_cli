@@ -36,12 +36,12 @@ mod tests {
     use super::SubmissionYear;
 
     #[test]
-    fn parses_four_digit_year() {
+    fn 提出年は4桁の西暦を受け付ける() {
         assert_eq!("2025".parse::<SubmissionYear>().unwrap().get(), 2025);
     }
 
     #[test]
-    fn rejects_non_four_digit_year() {
+    fn 提出年は4桁の西暦以外を拒否する() {
         for value in ["25", "02025", "year", "0000"] {
             assert!(value.parse::<SubmissionYear>().is_err());
         }

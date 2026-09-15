@@ -57,7 +57,7 @@ mod tests {
     use crate::getter::asr_report::AsrReport;
 
     #[test]
-    fn serializes_default_english_keys() {
+    fn getの標準出力は英語キーのmetadataとreportを持つ() {
         let report = AsrReport::default();
         let value = serde_json::to_value(GetCommandOutput::new(None, &report))
             .expect("default output should serialize");

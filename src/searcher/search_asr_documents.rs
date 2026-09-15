@@ -159,31 +159,30 @@ mod tests {
     use super::{SecCode, submission_year_bounds};
 
     #[test]
-    fn normalizes_four_character_sec_codes() -> anyhow::Result<()> {
-        assert_eq!(SecCode::new("7203")?.as_str(), "72030");
-        assert_eq!(SecCode::new("130A")?.as_str(), "130A0");
+    fn 証券コードは4文字なら予備コード0を補い5文字ならそのまま扱う() -> anyhow::Result<()> {
+        for (input, expected) in [
+            ("7203", "72030"),
+            ("130A", "130A0"),
+            ("72030", "72030"),
+            ("130A0", "130A0"),
+        ] {
+            assert_eq!(SecCode::new(input)?.as_str(), expected);
+        }
         Ok(())
     }
 
     #[test]
-    fn preserves_five_character_sec_codes() -> anyhow::Result<()> {
-        assert_eq!(SecCode::new("72030")?.as_str(), "72030");
-        assert_eq!(SecCode::new("130A0")?.as_str(), "130A0");
-        Ok(())
-    }
-
-    #[test]
-    fn rejects_invalid_sec_codes() {
+    fn 証券コードは4文字または5文字の半角英数字に限る() {
         for sec_code in ["", "720", "720300", "72-3", "トヨタ"] {
             assert!(
                 SecCode::new(sec_code).is_err(),
-                "`{sec_code}` must be rejected"
+                "`{sec_code}` は拒否されるべき"
             );
         }
     }
 
     #[test]
-    fn builds_full_submission_year_bounds() {
+    fn 提出年による検索は年初から年末までを含む() {
         assert_eq!(
             submission_year_bounds(2025),
             ("2025-01-01 00:00".to_owned(), "2025-12-31 23:59".to_owned(),)

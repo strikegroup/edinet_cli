@@ -160,7 +160,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn extracts_primary_financial_statements() {
+    fn 日本基準の財務諸表は当期と前期を区別して抽出する() {
         let index = XbrlFactIndex::new(vec![
             fact(
                 "jpcrp_cor:NotesSegmentInformationEtcFinancialStatementsTextBlock",
@@ -279,7 +279,7 @@ mod tests {
     }
 
     #[test]
-    fn extracts_ifrs_revenue_and_segment_information() {
+    fn ifrsの売上収益とセグメント情報も共通の財務項目へ抽出する() {
         let index = XbrlFactIndex::new(vec![
             fact(
                 "jpigp_cor:NotesSegmentInformationConsolidatedFinancialStatementsIFRSTextBlock",
@@ -315,7 +315,7 @@ mod tests {
     }
 
     #[test]
-    fn derives_operating_expenses_when_explicit_fact_is_missing() {
+    fn 営業費用は明示値を優先しなければ売上高と営業利益から算出する() {
         let index = XbrlFactIndex::new(vec![
             fact("jppfs_cor:NetSales", "CurrentYearDuration", "700"),
             fact(OPERATING_INCOME, "CurrentYearDuration", "200"),
@@ -331,10 +331,7 @@ mod tests {
                 .operating_expenses,
             Some(500)
         );
-    }
 
-    #[test]
-    fn keeps_explicit_operating_expenses_over_derived_value() {
         let index = XbrlFactIndex::new(vec![
             fact("jppfs_cor:NetSales", "CurrentYearDuration", "700"),
             fact(OPERATING_EXPENSES, "CurrentYearDuration", "480"),

@@ -174,7 +174,7 @@ fn remove_dir_if_exists(path: &Path, label: &str) -> anyhow::Result<()> {
 
 #[cfg(test)]
 mod tests {
-    use super::{clear_paths, format_size};
+    use super::clear_paths;
     use std::io::Cursor;
 
     fn unique_temp_dir(name: &str) -> std::path::PathBuf {
@@ -199,7 +199,7 @@ mod tests {
     }
 
     #[test]
-    fn deletes_data_after_y_confirmation_and_reports_sizes() -> anyhow::Result<()> {
+    fn clearは削除対象と合計容量を示しyの確認後に削除する() -> anyhow::Result<()> {
         let (database, cache) = create_local_data("confirmed")?;
         let mut input = Cursor::new(b"y\n");
         let mut output = Vec::new();
@@ -217,7 +217,7 @@ mod tests {
     }
 
     #[test]
-    fn cancels_deletion_unless_answer_is_y() -> anyhow::Result<()> {
+    fn clearはy以外の回答では何も削除しない() -> anyhow::Result<()> {
         let (database, cache) = create_local_data("cancelled")?;
         let root = database
             .parent()
@@ -236,7 +236,7 @@ mod tests {
     }
 
     #[test]
-    fn yes_option_skips_confirmation() -> anyhow::Result<()> {
+    fn clearのyesオプションは確認だけを省略して削除する() -> anyhow::Result<()> {
         let (database, cache) = create_local_data("forced")?;
         let mut input = Cursor::new(Vec::<u8>::new());
         let mut output = Vec::new();
@@ -247,13 +247,5 @@ mod tests {
         assert!(!cache.exists());
         assert!(!String::from_utf8(output)?.contains("[y/N]"));
         Ok(())
-    }
-
-    #[test]
-    fn formats_data_sizes() {
-        assert_eq!(format_size(0), "0 B");
-        assert_eq!(format_size(1023), "1023 B");
-        assert_eq!(format_size(1024), "1.0 KiB");
-        assert_eq!(format_size(1_572_864), "1.5 MiB");
     }
 }

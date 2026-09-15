@@ -431,7 +431,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn extracts_governance_metrics() {
+    fn 提出会社の状況からガバナンス指標を抽出し役員報酬を合算する() {
         let index = XbrlFactIndex::new(vec![
             fact(RATIO_FEMALE_DIRECTORS, "FilingDateInstant", "0.25"),
             fact(NUM_MALE_DIRECTORS, "FilingDateInstant", "8"),
@@ -489,7 +489,7 @@ mod tests {
     }
 
     #[test]
-    fn extracts_officer_counts_from_current_year_instant() {
+    fn 役員構成は提出日時点がなければ当期末時点から抽出する() {
         let index = XbrlFactIndex::new(vec![
             fact(RATIO_FEMALE_DIRECTORS, "CurrentYearInstant", "0.364"),
             fact(NUM_MALE_DIRECTORS, "CurrentYearInstant", "7"),
@@ -517,7 +517,7 @@ mod tests {
     }
 
     #[test]
-    fn extracts_shareholdings_text_and_policy_shareholdings_by_row() {
+    fn 政策保有株式は保有区分と銘柄行と年度を保って抽出する() {
         let specified = &POLICY_SHAREHOLDING_ELEMENTS[2];
         let deemed = &POLICY_SHAREHOLDING_ELEMENTS[3];
         let index = XbrlFactIndex::new(vec![

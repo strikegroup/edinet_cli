@@ -18,7 +18,6 @@ pub async fn print_status(db: Option<&DatabaseConnection>) -> anyhow::Result<()>
     let csv_cache_dir = crate::app_paths::current_csv_cache_dir()?;
     let api_key_registration_status = crate::app_config::api_key_registration_status()?;
     let env_api_key = std::env::var("EDINET_API_KEY").ok();
-    let api_key_env_status = has_api_key(env_api_key.as_deref());
     let today = chrono::Local::now().date_naive();
     let default_window_start = today
         .checked_sub_signed(chrono::Duration::days(DEFAULT_STATUS_WINDOW_DAYS - 1))
@@ -35,13 +34,8 @@ pub async fn print_status(db: Option<&DatabaseConnection>) -> anyhow::Result<()>
     println!("Document index: {}", database_path.display());
     println!("CSV cache: {}", csv_cache_dir.display());
     println!(
-        "API key: {}{}",
-        api_key_registration_status.as_str(),
-        if api_key_env_status {
-            " (but set in environment)"
-        } else {
-            ""
-        }
+        "API key: {}",
+        format_api_key_status(api_key_registration_status, env_api_key.as_deref())
     );
     println!();
     println!(
@@ -321,20 +315,34 @@ fn format_bytes(bytes: u64) -> String {
     }
 }
 
-fn has_api_key(api_key: Option<&str>) -> bool {
-    api_key.is_some_and(|api_key| !api_key.trim().is_empty())
+fn format_api_key_status(
+    registration_status: crate::app_config::ApiKeyRegistrationStatus,
+    env_api_key: Option<&str>,
+) -> String {
+    let environment_suffix = if env_api_key.is_some_and(|api_key| !api_key.trim().is_empty()) {
+        " (but set in environment)"
+    } else {
+        ""
+    };
+    format!("{}{environment_suffix}", registration_status.as_str())
 }
 
 #[cfg(test)]
 mod tests {
-    use super::has_api_key;
+    use super::format_api_key_status;
+    use crate::app_config::ApiKeyRegistrationStatus;
 
     #[test]
-    fn recognizes_only_non_empty_api_keys() {
-        assert!(has_api_key(Some("api-key")));
-        assert!(has_api_key(Some(" api-key ")));
-        assert!(!has_api_key(None));
-        assert!(!has_api_key(Some("")));
-        assert!(!has_api_key(Some("   ")));
+    fn statusは設定ファイルの状態と利用可能な環境変数を区別して表示する() {
+        assert_eq!(
+            format_api_key_status(ApiKeyRegistrationStatus::Missing, Some("api-key")),
+            "missing (but set in environment)"
+        );
+        for env_api_key in [None, Some(""), Some("   ")] {
+            assert_eq!(
+                format_api_key_status(ApiKeyRegistrationStatus::Missing, env_api_key),
+                "missing"
+            );
+        }
     }
 }

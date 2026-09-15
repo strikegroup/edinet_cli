@@ -192,7 +192,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn extracts_business_overview_texts_and_human_capital_metrics() {
+    fn 事業の状況から方針と人的資本指標をまとめて抽出する() {
         let index = XbrlFactIndex::new(vec![
             fact(GOVERNANCE, "FilingDateInstant", "ガバナンス本文"),
             fact(STRATEGY, "FilingDateInstant", "戦略本文"),
@@ -303,7 +303,7 @@ mod tests {
     }
 
     #[test]
-    fn extracts_additional_male_childcare_leave_elements() {
+    fn 男性育休取得率は法令別の代替要素からも抽出する() {
         let index = XbrlFactIndex::new(vec![fact(
             "jpcrp_cor:AllEmployeesCalculatedBasedOnProvisionsOfArticle714Item2OfOrdinanceForEnforcementOfActOnChildcareLeaveCaregiverLeaveAndOtherMeasuresForTheWelfareOfWorkersCaringForChildrenOrOtherFamilyMembersRatioOfMaleEmployeesTakingChildcareLeaveMetricsOfReportingCompany",
             "CurrentYearInstant_NonConsolidatedMember",

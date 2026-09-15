@@ -242,18 +242,14 @@ mod tests {
     }
 
     #[test]
-    fn treats_a_regular_query_as_optional_sec_code() -> anyhow::Result<()> {
+    fn フリーワードは文字列検索を維持し証券コードと解釈できる場合だけ併用する() -> anyhow::Result<()>
+    {
         let (condition, _) = build_search_condition(search_args(Some("ストライク"), None))?;
 
         assert_eq!(condition.query.as_deref(), Some("ストライク"));
         assert_eq!(condition.query_sec_code, None);
-        Ok(())
-    }
 
-    #[test]
-    fn normalizes_a_sec_code_query_for_the_combined_search() -> anyhow::Result<()> {
         let (condition, _) = build_search_condition(search_args(Some("7203"), None))?;
-
         assert_eq!(
             condition.query_sec_code.as_ref().map(|code| code.as_str()),
             Some("72030")
@@ -262,20 +258,15 @@ mod tests {
     }
 
     #[test]
-    fn normalizes_an_explicit_sec_code() -> anyhow::Result<()> {
+    fn 明示した証券コードはedinet形式へ揃え不正な形式を拒否する() -> anyhow::Result<()> {
         let (condition, _) = build_search_condition(search_args(None, Some("130A")))?;
 
         assert_eq!(
             condition.sec_code.as_ref().map(|code| code.as_str()),
             Some("130A0")
         );
-        Ok(())
-    }
-
-    #[test]
-    fn rejects_an_invalid_explicit_sec_code() {
         let result = build_search_condition(search_args(None, Some("720")));
-
         assert!(result.is_err());
+        Ok(())
     }
 }

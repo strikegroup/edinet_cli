@@ -86,7 +86,7 @@ mod tests {
     use crate::updater::fetch_document_metadatas::{FetchedDocumentMetadatas, retry_delay};
 
     #[test]
-    fn test_deserialize_document_metadatas_response() -> anyhow::Result<()> {
+    fn edinetの日次書類一覧を検索インデックス用データとして読み取れる() -> anyhow::Result<()> {
         let json = r#"
         {
           "results": [
@@ -125,7 +125,7 @@ mod tests {
     }
 
     #[test]
-    fn retry_delay_uses_exponential_backoff() {
+    fn edinetのapi再試行間隔は試行ごとに倍増する() {
         assert_eq!(retry_delay(0), std::time::Duration::from_secs(1));
         assert_eq!(retry_delay(1), std::time::Duration::from_secs(2));
         assert_eq!(retry_delay(2), std::time::Duration::from_secs(4));

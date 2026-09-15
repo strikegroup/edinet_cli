@@ -595,7 +595,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn serializes_japanese_labels_for_get_output() {
+    fn getの日本語出力は報告書の章と項目を日本語キーで表す() {
         let metadata = AsrDocumentMetadata {
             id: 1,
             file_date: "2026-04-01".to_owned(),

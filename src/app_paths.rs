@@ -89,16 +89,13 @@ mod tests {
     use std::path::PathBuf;
 
     #[test]
-    fn parses_absolute_sqlite_database_url() -> anyhow::Result<()> {
-        let path = parse_sqlite_file_path_from_url("sqlite:///tmp/asr.db")?;
-        assert_eq!(path, PathBuf::from("/tmp/asr.db"));
-        Ok(())
-    }
-
-    #[test]
-    fn strips_query_parameters_from_sqlite_database_url() -> anyhow::Result<()> {
-        let path = parse_sqlite_file_path_from_url("sqlite:///tmp/asr.db?mode=rwc")?;
-        assert_eq!(path, PathBuf::from("/tmp/asr.db"));
+    fn sqliteのurlからクエリを除いたデータベースの絶対パスを得る() -> anyhow::Result<()> {
+        for url in ["sqlite:///tmp/asr.db", "sqlite:///tmp/asr.db?mode=rwc"] {
+            assert_eq!(
+                parse_sqlite_file_path_from_url(url)?,
+                PathBuf::from("/tmp/asr.db")
+            );
+        }
         Ok(())
     }
 }

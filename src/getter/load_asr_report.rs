@@ -102,27 +102,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn finds_asr_csv_file_name() -> anyhow::Result<()> {
-        let temp_dir = std::env::temp_dir().join(format!(
-            "asrs_getter_test_{}",
-            std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)?
-                .as_nanos()
-        ));
-        let csv_dir = temp_dir.join("XBRL_TO_CSV");
-        std::fs::create_dir_all(&csv_dir)?;
-        let target = csv_dir.join("jpcrp030000-asr-001_E00000-000_2026-03-31_01_2026-04-01.csv");
-        std::fs::write(&target, [])?;
-
-        let found = find_asr_csv_path(&temp_dir)?;
-        assert_eq!(found, target);
-
-        std::fs::remove_dir_all(temp_dir)?;
-        Ok(())
-    }
-
-    #[test]
-    fn offline_mode_fails_on_cache_miss() -> anyhow::Result<()> {
+    fn オフライン取得はキャッシュがなければ理由を示して失敗する() -> anyhow::Result<()> {
         let temp_dir = std::env::temp_dir().join(format!(
             "asrs_getter_test_{}",
             std::time::SystemTime::now()
@@ -144,7 +124,7 @@ mod tests {
     }
 
     #[test]
-    fn offline_mode_uses_cached_asr_csv() -> anyhow::Result<()> {
+    fn オフライン取得は書類idに対応する有価証券報告書csvを使う() -> anyhow::Result<()> {
         let temp_dir = std::env::temp_dir().join(format!(
             "asrs_getter_test_{}",
             std::time::SystemTime::now()

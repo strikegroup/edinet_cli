@@ -153,56 +153,46 @@ mod tests {
     use super::resolve_api_key_from_sources;
 
     #[test]
-    fn command_line_api_key_has_highest_priority() -> anyhow::Result<()> {
-        let resolved = resolve_api_key_from_sources(Some(" cli-key "), Some("env-key"), || {
+    fn apiキーは引数と環境変数と設定ファイルの順に優先する() -> anyhow::Result<()> {
+        let scenarios = [
+            (Some(" cli-key "), Some("env-key"), "cli-key"),
+            (None, Some(" env-key "), "env-key"),
+            (None, Some("  "), "config-key"),
+            (None, None, "config-key"),
+        ];
+
+        for (argument, environment, expected) in scenarios {
+            let resolved =
+                resolve_api_key_from_sources(
+                    argument,
+                    environment,
+                    || Ok("config-key".to_owned()),
+                )?;
+            assert_eq!(resolved, expected);
+        }
+        Ok(())
+    }
+
+    #[test]
+    fn 明示された空のapiキーは拒否し利用可能なキーがなければ設定エラーを返す() {
+        let empty_argument = resolve_api_key_from_sources(Some("  "), Some("env-key"), || {
             Ok("config-key".to_owned())
-        })?;
+        });
+        assert_eq!(
+            empty_argument
+                .expect_err("明示された空のAPIキーは拒否されるべき")
+                .to_string(),
+            "api key must not be empty"
+        );
 
-        assert_eq!(resolved, "cli-key");
-        Ok(())
-    }
-
-    #[test]
-    fn environment_api_key_precedes_config_file() -> anyhow::Result<()> {
-        let resolved =
-            resolve_api_key_from_sources(None, Some(" env-key "), || Ok("config-key".to_owned()))?;
-
-        assert_eq!(resolved, "env-key");
-        Ok(())
-    }
-
-    #[test]
-    fn empty_environment_api_key_falls_back_to_config_file() -> anyhow::Result<()> {
-        let resolved =
-            resolve_api_key_from_sources(None, Some("  "), || Ok("config-key".to_owned()))?;
-
-        assert_eq!(resolved, "config-key");
-        Ok(())
-    }
-
-    #[test]
-    fn returns_config_error_when_no_other_api_key_is_available() {
         let result = resolve_api_key_from_sources(None, None, || {
             Err(anyhow::anyhow!("config key is unavailable"))
         });
-
-        assert_eq!(
-            result.expect_err("missing API key must fail").to_string(),
-            "config key is unavailable"
-        );
-    }
-
-    #[test]
-    fn rejects_an_empty_command_line_api_key_without_falling_back() {
-        let result = resolve_api_key_from_sources(Some("  "), Some("env-key"), || {
-            Ok("config-key".to_owned())
-        });
-
         assert_eq!(
             result
-                .expect_err("an explicitly empty API key must fail")
+                .expect_err("利用可能なAPIキーがなければ失敗するべき")
                 .to_string(),
-            "api key must not be empty"
+            "config key is unavailable"
         );
     }
 }

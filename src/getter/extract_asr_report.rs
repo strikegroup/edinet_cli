@@ -36,7 +36,7 @@ mod tests {
     use super::*;
 
     #[test]
-    fn builds_chapter_based_summary_from_xbrl_csv_records() -> anyhow::Result<()> {
+    fn xbrl形式のcsvを有価証券報告書の章立てに沿ったレポートへ変換する() -> anyhow::Result<()> {
         let tsv = [
             "要素ID\t項目名\tコンテキストID\t相対年度\t連結・個別\t期間・時点\tユニットID\t単位\t値",
             "jpcrp_cor:BusinessRisksTextBlock\t事業等のリスク\tFilingDateInstant\t\t\t時点\t\t\tリスク本文",

@@ -190,7 +190,7 @@ mod tests {
     }
 
     #[test]
-    fn document_commands_reject_unsafe_document_ids() {
+    fn 書類を扱うコマンドは安全でない書類idを拒否する() {
         for args in [
             &["edinet", "get", "--doc-id", "../file1"][..],
             &[
@@ -214,7 +214,7 @@ mod tests {
     }
 
     #[test]
-    fn root_help_guides_initial_setup_and_command_discovery() {
+    fn ルートヘルプは初期設定と各コマンドの調べ方を案内する() {
         let help = render_help(&[]);
 
         assert!(help.contains("edinet setup --key YOUR_API_KEY"));
@@ -239,7 +239,7 @@ mod tests {
     }
 
     #[test]
-    fn every_command_has_a_usage_example() {
+    fn 各コマンドのヘルプは代表的な実行例を示す() {
         for (path, example) in [
             (&["setup"][..], "edinet setup --key YOUR_API_KEY"),
             (&["update"][..], "edinet update --years 3"),
@@ -262,7 +262,7 @@ mod tests {
     }
 
     #[test]
-    fn destructive_and_sensitive_commands_explain_their_scope() {
+    fn 削除と状態確認のヘルプは操作対象を明示する() {
         assert!(render_help(&["clear"]).contains("CSV キャッシュを削除します"));
         assert!(render_help(&["clear"]).contains("-y, --yes"));
         assert!(
@@ -274,7 +274,7 @@ mod tests {
     }
 
     #[test]
-    fn update_years_requires_positive_value_and_excludes_other_periods() {
+    fn 更新コマンドは有効な並列数と重複しない期間指定だけを受け付ける() {
         assert!(
             cli_command()
                 .try_get_matches_from(["edinet", "update", "--years", "0"])
@@ -312,7 +312,7 @@ mod tests {
     }
 
     #[test]
-    fn update_force_is_documented() {
+    fn 強制更新オプションは更新済み日付も対象にすることを説明する() {
         let help = render_help(&["update"]);
 
         assert!(help.contains("-F, --force"));
@@ -320,7 +320,7 @@ mod tests {
     }
 
     #[test]
-    fn year_filter_is_available_on_document_commands() {
+    fn 書類を扱うコマンドは提出年で絞り込める() {
         for (path, example) in [
             (
                 &["search"][..],
@@ -357,7 +357,7 @@ mod tests {
     }
 
     #[test]
-    fn year_filter_rejects_invalid_or_conflicting_values() {
+    fn 提出年は4桁に限り他の期間や書類idと併用できない() {
         for args in [
             &["edinet", "search", "--year", "25"][..],
             &["edinet", "search", "--year", "2025", "--date", "2025-01-01"][..],
@@ -368,7 +368,7 @@ mod tests {
     }
 
     #[test]
-    fn get_accepts_sec_code_and_rejects_it_with_doc_id() {
+    fn getは証券コードで絞り込めるが書類idとは併用できない() {
         assert!(
             cli_command()
                 .try_get_matches_from(["edinet", "get", "--sec-code", "7203"])
@@ -389,7 +389,7 @@ mod tests {
     }
 
     #[test]
-    fn get_and_download_reject_removed_date_filters() {
+    fn getとdownloadは提出年以外の期間指定を受け付けない() {
         for args in [
             &["edinet", "get", "--date", "2025-01-01"][..],
             &["edinet", "get", "--from", "2025-01-01"][..],
@@ -403,7 +403,7 @@ mod tests {
     }
 
     #[test]
-    fn get_uses_lang_option_for_json_key_language() {
+    fn getはlangオプションでjsonのキー言語を選ぶ() {
         let help = render_help(&["get"]);
         assert!(help.contains("-l, --lang <LANG>"));
         assert!(!help.contains("--keys"));
@@ -421,7 +421,7 @@ mod tests {
     }
 
     #[test]
-    fn command_aliases_are_accepted() {
+    fn 全コマンドは短い別名でも呼び出せる() {
         for args in [
             &["edinet", "init", "-h"][..],
             &["edinet", "u", "-h"][..],
@@ -438,7 +438,7 @@ mod tests {
     }
 
     #[test]
-    fn option_aliases_are_accepted() {
+    fn cliの主要オプションは短縮形でも指定できる() {
         for args in [
             &["edinet", "init", "-k", "API_KEY"][..],
             &[
@@ -510,7 +510,7 @@ mod tests {
     }
 
     #[test]
-    fn api_key_options_use_consistent_help() {
+    fn apiキーを受け取るコマンドは優先順位を一貫して説明する() {
         for path in [&["update"][..], &["get"][..], &["download"][..]] {
             assert!(
                 render_help(path)
@@ -520,7 +520,7 @@ mod tests {
     }
 
     #[test]
-    fn short_and_long_help_flags_have_identical_output() {
+    fn 短いhelpオプションと長いhelpオプションは同じ案内を返す() {
         for command in [
             &[][..],
             &["setup"][..],
