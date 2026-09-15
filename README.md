@@ -142,21 +142,6 @@ edinet get --company ストライク | jq '.report.business_overview.business_de
 "３ 【事業の内容】当社は公認会計士及び税理士が経営主体となり、創業よりＭ＆Ａ(企業合併、企業買収、企業間の資本提携等)の仲介を主たる事業としております。なお、当社はＭ＆Ａ仲介事業の単一セグメントであるため、セグメント情報は記載しておりません。..."
 ```
 
-### 特定投資株式・みなし保有株式を銘柄別に取得
-
-「株式の保有状況」の全文は `shareholding`、銘柄別明細は `policy_shareholdings` に出力されます。
-
-```bash
-edinet get --company <会社名> \
-  | jq '.report.corporate_information.policy_shareholdings[]
-      | {category, holder_scope, holder_name, issue_name, current, prior}'
-```
-
-`category` は `specified_investment`（特定投資株式）又は `deemed_holding`（みなし保有株式）です。
-持株会社の有報では、`holder_scope` と `holder_name` により提出会社、最大保有会社、投資株式計上額が次に大きい会社を区別します。
-株式数及び貸借対照表計上額は、当事業年度を `current`、前事業年度を `prior` に格納します。
-EDINET 上で数値が記載省略となっている場合は、値を `null` とし、対応する `*_not_disclosed` を `true` にします。
-
 ### 会社名で候補を探してから有報を取得
 
 会社名の一部から候補を検索し、提出者名または書類IDを指定して有価証券報告書を取得します。
