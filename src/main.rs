@@ -92,10 +92,10 @@ enum SubCommand {
     Download(crate::downloader::command::DownloadArgs),
     #[command(
         about = "検索インデックスとダウンロード済み CSV キャッシュを削除します",
-        after_help = "使用例:\n  edinet clear",
+        after_help = "使用例:\n  edinet clear\n  edinet clear -y",
         visible_alias = "c"
     )]
-    Clear,
+    Clear(crate::clear::ClearArgs),
     #[command(
         about = "各種状態を表示します",
         after_help = "使用例:\n  edinet status",
@@ -116,8 +116,8 @@ async fn main() -> anyhow::Result<()> {
         SubCommand::Search(command) => crate::searcher::command::run(command).await?,
         SubCommand::Get(command) => crate::getter::command::run(command).await?,
         SubCommand::Download(command) => crate::downloader::command::run(command).await?,
-        SubCommand::Clear => {
-            crate::clear::clear_local_data()?;
+        SubCommand::Clear(command) => {
+            crate::clear::clear_local_data(command)?;
         }
         SubCommand::Status => {
             crate::status::run().await?;
@@ -264,6 +264,12 @@ mod tests {
     #[test]
     fn destructive_and_sensitive_commands_explain_their_scope() {
         assert!(render_help(&["clear"]).contains("CSV キャッシュを削除します"));
+        assert!(render_help(&["clear"]).contains("-y, --yes"));
+        assert!(
+            cli_command()
+                .try_get_matches_from(["edinet", "clear", "-y"])
+                .is_ok()
+        );
         assert!(render_help(&["status"]).contains("各種状態を表示します"));
     }
 

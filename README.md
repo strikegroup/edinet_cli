@@ -493,10 +493,13 @@ edinet download pdf ./downloads --doc-id S100XAN1 --key <YOUR_EDINET_API_KEY>
 
 ### `clear`
 
-ローカルの SQLite DB と CSV キャッシュを削除します。`config.toml` に保存した API キーは削除しません。
+ローカルの SQLite DB と CSV キャッシュを削除します。削除前に対象パスとデータ容量を表示し、`y` の入力を求めます。`config.toml` に保存した API キーは削除しません。
 
 ```bash
 edinet clear
+
+# 確認を省略して削除
+edinet clear -y
 ```
 
 ### `status`

@@ -17,7 +17,7 @@ pub struct DownloadArgs {
     pub doc_type: DocType,
     #[arg(
         display_order = 2,
-        help = "出力先のファイルまたはディレクトリ",
+        help = "出力先のファイルまたはディレクトリ (省略時はカレントディレクトリ)",
         value_name = "PATH"
     )]
     pub dest: Option<std::path::PathBuf>,
