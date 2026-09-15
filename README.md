@@ -46,6 +46,12 @@ cargo install --locked edinet_cli
 edinet setup --key <YOUR_EDINET_API_KEY>
 ```
 
+環境変数で指定することもできます。API キーは、コマンドラインの `--key`、`EDINET_API_KEY`、`config.toml` の順に優先されます。
+
+```bash
+export EDINET_API_KEY=<YOUR_EDINET_API_KEY>
+```
+
 API キーは、以下の EDINET API 仕様書の 2-3 節の手順で取得してください。
 
 https://disclosure2dl.edinet-fsa.go.jp/guide/static/disclosure/download/ESE140206.pdf
@@ -332,7 +338,7 @@ edinet get --doc-id S100Y8NY
 
 `failed to read config file ...`
 
-API キーがまだ登録されていません。`edinet setup --key <YOUR_EDINET_API_KEY>` を実行するか、`update` / `get` / `download` に `--key` を付けて実行してください。
+API キーがまだ登録されていません。`edinet setup --key <YOUR_EDINET_API_KEY>` を実行するか、`EDINET_API_KEY` 環境変数、または `update` / `get` / `download` の `--key` で指定してください。
 
 `ASR document not found for the given query`
 

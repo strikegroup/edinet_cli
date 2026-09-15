@@ -28,12 +28,13 @@ cp .env.example .env
 
 ```env
 SQLX_OFFLINE=true
+# EDINET_API_KEY=your-api-key
 # Optional overrides:
 # DATABASE_URL=sqlite:///absolute/path/to/asrs.db
 # ASRS_CSV_CACHE_DIR=/absolute/path/to/csv-cache
 ```
 
-API キーは環境変数ではなく、`setup` コマンドで `config.toml` に保存します。
+API キーは `setup` コマンドで `config.toml` に保存するか、`EDINET_API_KEY` 環境変数で指定します。コマンドラインの `--key`、`EDINET_API_KEY`、`config.toml` の順に優先されます。
 
 ```bash
 cargo run -- setup --key <YOUR_EDINET_API_KEY>

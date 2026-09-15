@@ -16,7 +16,9 @@ const DEFAULT_STATUS_WINDOW_DAYS: i64 = 365;
 pub async fn print_status(db: Option<&DatabaseConnection>) -> anyhow::Result<()> {
     let database_path = crate::app_paths::current_database_path()?;
     let csv_cache_dir = crate::app_paths::current_csv_cache_dir()?;
-    let api_key_status = crate::app_config::api_key_registration_status()?;
+    let api_key_registration_status = crate::app_config::api_key_registration_status()?;
+    let env_api_key = std::env::var("EDINET_API_KEY").ok();
+    let api_key_env_status = has_api_key(env_api_key.as_deref());
     let today = chrono::Local::now().date_naive();
     let default_window_start = today
         .checked_sub_signed(chrono::Duration::days(DEFAULT_STATUS_WINDOW_DAYS - 1))
@@ -32,7 +34,15 @@ pub async fn print_status(db: Option<&DatabaseConnection>) -> anyhow::Result<()>
 
     println!("Document index: {}", database_path.display());
     println!("CSV cache: {}", csv_cache_dir.display());
-    println!("API key: {}", api_key_status.as_str());
+    println!(
+        "API key: {}{}",
+        api_key_registration_status.as_str(),
+        if api_key_env_status {
+            " (but set in environment)"
+        } else {
+            ""
+        }
+    );
     println!();
     println!(
         "Document index exists: {}",
@@ -308,5 +318,23 @@ fn format_bytes(bytes: u64) -> String {
         format!("{} {}", bytes, UNITS[unit_index])
     } else {
         format!("{:.1} {}", value, UNITS[unit_index])
+    }
+}
+
+fn has_api_key(api_key: Option<&str>) -> bool {
+    api_key.is_some_and(|api_key| !api_key.trim().is_empty())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::has_api_key;
+
+    #[test]
+    fn recognizes_only_non_empty_api_keys() {
+        assert!(has_api_key(Some("api-key")));
+        assert!(has_api_key(Some(" api-key ")));
+        assert!(!has_api_key(None));
+        assert!(!has_api_key(Some("")));
+        assert!(!has_api_key(Some("   ")));
     }
 }
