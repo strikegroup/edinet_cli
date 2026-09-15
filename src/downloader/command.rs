@@ -96,7 +96,7 @@ pub async fn run(args: DownloadArgs) -> anyhow::Result<()> {
     };
     let normalized_dest = args.dest.unwrap_or(std::env::current_dir()?);
     let api_key = crate::app_config::resolve_api_key(args.key.as_deref())?;
-    crate::downloader::download_document::download_document(
+    let downloaded_file = crate::downloader::download_document::download_document(
         &args.doc_type,
         &doc_id,
         &api_key,
@@ -104,6 +104,8 @@ pub async fn run(args: DownloadArgs) -> anyhow::Result<()> {
         args.extract,
     )
     .await?;
+
+    println!("Downloaded: {}", downloaded_file.display());
 
     Ok(())
 }
