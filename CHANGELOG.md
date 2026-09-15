@@ -7,6 +7,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.6](https://github.com/strikegroup/edinet_cli/compare/v0.0.5...v0.0.6) - 2026-09-15
+
+### Added
+
+- 環境変数による API キー指定に対応
+- get コマンドに証券コード絞り込みオプションを追加
+- clear コマンドに確認を実装
+- download コマンドに完了通知を追加
+
+### Other
+
+- テストケースをオーバーホール
+- update readme.md
+
 ## [0.0.5](https://github.com/strikegroup/edinet_cli/compare/v0.0.4...v0.0.5) - 2026-09-14
 
 ### Added
