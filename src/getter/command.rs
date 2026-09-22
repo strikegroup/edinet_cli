@@ -58,7 +58,8 @@ pub struct GetArgs {
     pub lang: OutputLanguage,
     #[arg(
         long,
-        value_name = "JQ_FILTER",
+        short = 'f',
+        value_name = "FILTER",
         help = "jq 互換フィルタを適用して JSON の出力項目を選択します"
     )]
     pub format: Option<String>,
