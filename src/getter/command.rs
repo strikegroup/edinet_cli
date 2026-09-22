@@ -3,6 +3,7 @@
 // SPDX-License-Identifier: Apache-2.0
 
 use clap::{ArgGroup, ValueEnum};
+use jaq_all::jaq_core::unwrap_valr;
 
 #[derive(Copy, Clone, Debug, Eq, PartialEq, ValueEnum)]
 pub enum OutputLanguage {
@@ -55,6 +56,12 @@ pub struct GetArgs {
     pub offline: bool,
     #[arg(long, short = 'l', value_enum, default_value_t = OutputLanguage::En, help = "JSON のキー言語を指定します（en または ja）")]
     pub lang: OutputLanguage,
+    #[arg(
+        long,
+        value_name = "JQ_FILTER",
+        help = "jq 互換フィルタを適用して JSON の出力項目を選択します"
+    )]
+    pub format: Option<String>,
 }
 
 pub async fn run(args: GetArgs) -> anyhow::Result<()> {
@@ -92,7 +99,7 @@ pub async fn run(args: GetArgs) -> anyhow::Result<()> {
             args.offline,
         )
         .await?;
-        print_get_output(None, &report, args.lang)?;
+        print_get_output(None, &report, args.lang, args.format.as_deref())?;
         return Ok(());
     }
 
@@ -113,7 +120,7 @@ pub async fn run(args: GetArgs) -> anyhow::Result<()> {
         args.offline,
     )
     .await?;
-    print_get_output(Some(&metadata), &report, args.lang)?;
+    print_get_output(Some(&metadata), &report, args.lang, args.format.as_deref())?;
 
     Ok(())
 }
@@ -122,15 +129,106 @@ fn print_get_output(
     metadata: Option<&crate::store::asr_document_metadata::AsrDocumentMetadata>,
     report: &crate::getter::asr_report::AsrReport,
     language: OutputLanguage,
+    jq_filter: Option<&str>,
 ) -> anyhow::Result<()> {
     if matches!(language, OutputLanguage::Ja) {
         let output =
             crate::getter::output::get_command_output_ja::GetCommandOutputJa::new(metadata, report);
-        println!("{}", serde_json::to_string_pretty(&output)?);
+        print!("{}", render_output(&output, jq_filter)?);
         return Ok(());
     }
 
     let output = crate::getter::output::get_command_output::GetCommandOutput::new(metadata, report);
-    println!("{}", serde_json::to_string_pretty(&output)?);
+    print!("{}", render_output(&output, jq_filter)?);
     Ok(())
+}
+
+fn render_output(
+    output: &impl serde::Serialize,
+    jq_filter: Option<&str>,
+) -> anyhow::Result<String> {
+    let json = serde_json::to_string_pretty(output)?;
+    let Some(jq_filter) = jq_filter else {
+        return Ok(format!("{json}\n"));
+    };
+
+    apply_jq_filter(&json, jq_filter)
+}
+
+fn apply_jq_filter(json: &str, jq_filter: &str) -> anyhow::Result<String> {
+    let filter = jaq_all::compile_with(jq_filter, jaq_all::defs(), jaq_all::data::base_funs(), &[])
+        .map_err(|reports| {
+            let details = reports
+                .iter()
+                .map(|report| jaq_all::load::FileReportsDisp::new(report).to_string())
+                .collect::<Vec<_>>()
+                .join("");
+            anyhow::anyhow!("invalid jq filter:\n{details}")
+        })?;
+    let input = jaq_all::json::read::parse_single(json.as_bytes())
+        .map_err(|error| anyhow::anyhow!("failed to prepare JSON for jq filter: {error}"))?;
+
+    let mut runner = jaq_all::data::Runner::default();
+    runner.writer.pp.indent = Some("  ".to_owned());
+    runner.writer.pp.sep_space = true;
+
+    let mut rendered = Vec::new();
+    jaq_all::data::run(
+        &runner,
+        &filter,
+        Default::default(),
+        std::iter::once(Ok::<_, String>(input)),
+        |error| anyhow::anyhow!(error),
+        |value| {
+            let value =
+                unwrap_valr(value).map_err(|error| anyhow::anyhow!("jq filter failed: {error}"))?;
+            jaq_all::json::write::write(&mut rendered, &runner.writer.pp, 0, &value)?;
+            rendered.push(b'\n');
+            Ok(())
+        },
+    )?;
+
+    String::from_utf8(rendered)
+        .map_err(|error| anyhow::anyhow!("jq filter produced invalid UTF-8: {error}"))
+}
+
+#[cfg(test)]
+mod tests {
+    use serde_json::json;
+
+    use super::render_output;
+
+    #[test]
+    fn formatでネストしたフィールドを抽出できる() {
+        let output = json!({"foo": {"bar": {"buz": 42}}, "other": true});
+
+        let rendered = render_output(&output, Some(".foo.bar.buz")).unwrap();
+
+        assert_eq!(rendered, "42\n");
+    }
+
+    #[test]
+    fn formatは複数の結果をjqと同様に一件ずつ出力する() {
+        let output = json!({"items": [{"name": "A"}, {"name": "B"}]});
+
+        let rendered = render_output(&output, Some(".items[].name")).unwrap();
+
+        assert_eq!(rendered, "\"A\"\n\"B\"\n");
+    }
+
+    #[test]
+    fn formatを省略すると従来どおりjsonを整形して出力する() {
+        let output = json!({"foo": {"bar": 1}});
+
+        let rendered = render_output(&output, None).unwrap();
+
+        assert_eq!(rendered, "{\n  \"foo\": {\n    \"bar\": 1\n  }\n}\n");
+    }
+
+    #[test]
+    fn 不正なformatはエラーにする() {
+        let error = render_output(&json!({"foo": 1}), Some(".foo |")).unwrap_err();
+
+        assert!(error.to_string().contains("invalid jq filter"));
+    }
 }

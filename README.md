@@ -440,12 +440,16 @@ edinet get --doc-id S100XYDT
 # 日本語キーで出力
 edinet get --edinet-code E00424 --lang ja
 
+# jq 互換フィルタで必要なフィールドだけ出力
+edinet get --company トヨタ --format '.report.company_overview.business_results_summary'
+
 # この実行だけ別のAPIキーを使う
 edinet get --company トヨタ --key <YOUR_EDINET_API_KEY>
 ```
 
 `--doc-id` は `--edinet-code`、`--company`、`--year` と併用できません。条件に一致する書類が複数ある場合は、その年に提出された最新の有価証券報告書を取得します。
 `--lang ja` を指定したときだけ、JSON のフィールド名を日本語ラベルで出力します。既定は `--lang en` です。
+`--format` には jq 互換フィルタを指定できます。フィールド選択だけでなく、`.items[]` のように複数の結果を生成するフィルタにも対応し、各結果を JSON として順番に出力します。
 
 ### `download`
 

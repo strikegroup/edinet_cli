@@ -76,6 +76,7 @@ enum SubCommand {
                       edinet get --edinet-code E32380 --lang ja\n  \
                       edinet get --company ストライク --year 2025\n  \
                       edinet get --doc-id S100XAN1\n  \
+                      edinet get --company ストライク --format '.report.company_overview'\n  \
                       edinet get --company ストライク --offline",
         visible_alias = "g"
     )]
@@ -417,6 +418,27 @@ mod tests {
             cli_command()
                 .try_get_matches_from(["edinet", "get", "--company", "ストライク", "--keys", "ja"])
                 .is_err()
+        );
+    }
+
+    #[test]
+    fn getはformatオプションでjqフィルタを受け付ける() {
+        let help = render_help(&["get"]);
+        assert!(help.contains("--format <JQ_FILTER>"));
+        assert!(help.contains("jq 互換フィルタ"));
+        assert!(help.contains("--format '.report.company_overview'"));
+
+        assert!(
+            cli_command()
+                .try_get_matches_from([
+                    "edinet",
+                    "get",
+                    "--company",
+                    "ストライク",
+                    "--format",
+                    ".report.company_overview",
+                ])
+                .is_ok()
         );
     }
 
