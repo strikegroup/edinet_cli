@@ -17,8 +17,9 @@ mod zip_archive;
 
 use std::io::IsTerminal;
 
-use clap::{ArgAction, Command, CommandFactory, FromArgMatches, Parser};
-use tracing_subscriber::{EnvFilter, filter::LevelFilter};
+use clap::{Command, CommandFactory, FromArgMatches, Parser};
+use clap_verbosity_flag::{InfoLevel, Verbosity};
+use tracing_subscriber::filter::{LevelFilter, Targets};
 
 const HELP_TEMPLATE: &str =
     "{before-help}{about-with-newline}\n使い方: {usage}\n\n{all-args}{after-help}";
@@ -40,12 +41,8 @@ const HELP_TEMPLATE: &str =
 struct Cli {
     #[command(subcommand)]
     subcommand: SubCommand,
-    /// ログの詳細度を上げます（-v: デバッグ、-vv: トレース）
-    #[arg(short, long, action = ArgAction::Count, global = true)]
-    verbose: u8,
-    /// ログを表示しません
-    #[arg(short, long, action = ArgAction::Count, global = true)]
-    quiet: u8,
+    #[command(flatten)]
+    verbosity: Verbosity<InfoLevel>,
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -134,41 +131,20 @@ async fn main() -> std::process::ExitCode {
     std::process::ExitCode::SUCCESS
 }
 
-fn log_level_filter(cli: &Cli) -> LevelFilter {
-    match (cli.quiet, cli.verbose) {
-        (quiet, _) if quiet > 0 => LevelFilter::OFF,
-        (_, 0) => LevelFilter::INFO,
-        (_, 1) => LevelFilter::DEBUG,
-        (_, _) => LevelFilter::TRACE,
-    }
-}
-
 fn setup_logging(cli: &Cli) -> anyhow::Result<()> {
     use tracing_subscriber::prelude::*;
 
-    let (dependency_level, application_level) = match log_level_filter(cli) {
-        LevelFilter::OFF => (LevelFilter::OFF, LevelFilter::OFF),
-        LevelFilter::ERROR => (LevelFilter::ERROR, LevelFilter::ERROR),
-        LevelFilter::WARN => (LevelFilter::WARN, LevelFilter::WARN),
-        LevelFilter::INFO => (LevelFilter::WARN, LevelFilter::INFO),
-        LevelFilter::DEBUG => (LevelFilter::INFO, LevelFilter::DEBUG),
-        LevelFilter::TRACE => (LevelFilter::DEBUG, LevelFilter::TRACE),
+    let application_level = cli.verbosity.tracing_level_filter();
+    let dependency_level = match application_level {
+        LevelFilter::INFO => LevelFilter::WARN,
+        LevelFilter::DEBUG => LevelFilter::INFO,
+        LevelFilter::TRACE => LevelFilter::DEBUG,
+        level => level,
     };
 
-    let application_directive = format!("edinet={application_level}");
-    let directives = if cli.verbose > 0 || cli.quiet > 0 {
-        application_directive
-    } else {
-        match std::env::var("RUST_LOG") {
-            Ok(env_directives) if !env_directives.is_empty() => {
-                format!("{application_directive},{env_directives}")
-            }
-            _ => application_directive,
-        }
-    };
-    let env_filter = EnvFilter::builder()
-        .with_default_directive(dependency_level.into())
-        .parse(directives)?;
+    let filter = Targets::new()
+        .with_default(dependency_level)
+        .with_target("edinet", application_level);
     let fmt_layer = tracing_subscriber::fmt::layer()
         .with_ansi(std::io::stderr().is_terminal())
         .with_level(application_level >= LevelFilter::DEBUG)
@@ -177,7 +153,7 @@ fn setup_logging(cli: &Cli) -> anyhow::Result<()> {
         .without_time();
 
     tracing_subscriber::registry()
-        .with(env_filter)
+        .with(filter)
         .with(fmt_layer)
         .try_init()?;
     Ok(())
@@ -222,6 +198,8 @@ fn localize_help(command: Command) -> Command {
             match arg.get_id().as_str() {
                 "help" => arg.help("ヘルプを表示します"),
                 "version" => arg.help("バージョンを表示します"),
+                "verbose" => arg.help("ログの詳細度を上げます（複数指定可）"),
+                "quiet" => arg.help("ログの詳細度を下げます（複数指定可）"),
                 _ => arg,
             }
         })
@@ -240,7 +218,7 @@ mod tests {
     use clap::Parser;
     use tracing_subscriber::filter::LevelFilter;
 
-    use super::{Cli, cli_command, log_level_filter};
+    use super::{Cli, cli_command};
 
     fn render_help(path: &[&str]) -> String {
         let mut command = cli_command();
@@ -267,18 +245,24 @@ mod tests {
     }
 
     #[test]
-    fn ログレベルはquietを優先しverboseの回数に応じて切り替わる() {
+    fn ログレベルはverboseとquietの指定回数に応じて切り替わる() {
         let cli = Cli::try_parse_from(["edinet", "status"]).unwrap();
-        assert_eq!(log_level_filter(&cli), LevelFilter::INFO);
+        assert_eq!(cli.verbosity.tracing_level_filter(), LevelFilter::INFO);
 
         let cli = Cli::try_parse_from(["edinet", "-v", "status"]).unwrap();
-        assert_eq!(log_level_filter(&cli), LevelFilter::DEBUG);
+        assert_eq!(cli.verbosity.tracing_level_filter(), LevelFilter::DEBUG);
 
         let cli = Cli::try_parse_from(["edinet", "-vv", "status"]).unwrap();
-        assert_eq!(log_level_filter(&cli), LevelFilter::TRACE);
+        assert_eq!(cli.verbosity.tracing_level_filter(), LevelFilter::TRACE);
 
-        let cli = Cli::try_parse_from(["edinet", "-vv", "-q", "status"]).unwrap();
-        assert_eq!(log_level_filter(&cli), LevelFilter::OFF);
+        let cli = Cli::try_parse_from(["edinet", "-q", "status"]).unwrap();
+        assert_eq!(cli.verbosity.tracing_level_filter(), LevelFilter::WARN);
+
+        let cli = Cli::try_parse_from(["edinet", "-qq", "status"]).unwrap();
+        assert_eq!(cli.verbosity.tracing_level_filter(), LevelFilter::ERROR);
+
+        let cli = Cli::try_parse_from(["edinet", "-qqq", "status"]).unwrap();
+        assert_eq!(cli.verbosity.tracing_level_filter(), LevelFilter::OFF);
     }
 
     #[test]
@@ -316,8 +300,8 @@ mod tests {
         assert!(help.contains("使い方: edinet [OPTIONS] <COMMAND>"));
         assert!(help.contains("コマンド:"));
         assert!(help.contains("オプション:"));
-        assert!(help.contains("ログの詳細度を上げます（-v: デバッグ、-vv: トレース）"));
-        assert!(help.contains("ログを表示しません"));
+        assert!(help.contains("ログの詳細度を上げます（複数指定可）"));
+        assert!(help.contains("ログの詳細度を下げます（複数指定可）"));
         for alias in [
             "[aliases: init]",
             "[aliases: u]",

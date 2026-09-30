@@ -62,6 +62,7 @@ anyhow = "1.0.101"
 byteorder = "1.5.0"
 chrono = "0.4.42"
 clap = { version = "4.5.58", features = ["derive"] }
+clap-verbosity-flag = { version = "3.0.4", default-features = false, features = ["tracing"] }
 csv = "1.4.0"
 directories = "6.0.0"
 dotenvy = "0.15.7"
@@ -74,5 +75,5 @@ tabled = "0.21.0"
 tokio = { version = "1.49.0", features = ["full"] }
 toml = "0.8.23"
 tracing = "0.1.44"
-tracing-subscriber = { version = "0.3.23", features = ["env-filter"] }
+tracing-subscriber = "0.3.23"
 zip = "6.0.0"
