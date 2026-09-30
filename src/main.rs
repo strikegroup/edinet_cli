@@ -15,7 +15,10 @@ mod submission_year;
 mod updater;
 mod zip_archive;
 
-use clap::{Command, CommandFactory, FromArgMatches, Parser};
+use std::io::IsTerminal;
+
+use clap::{ArgAction, Command, CommandFactory, FromArgMatches, Parser};
+use tracing_subscriber::{EnvFilter, filter::LevelFilter};
 
 const HELP_TEMPLATE: &str =
     "{before-help}{about-with-newline}\n使い方: {usage}\n\n{all-args}{after-help}";
@@ -37,6 +40,12 @@ const HELP_TEMPLATE: &str =
 struct Cli {
     #[command(subcommand)]
     subcommand: SubCommand,
+    /// ログの詳細度を上げます（-v: デバッグ、-vv: トレース）
+    #[arg(short, long, action = ArgAction::Count, global = true)]
+    verbose: u8,
+    /// ログを表示しません
+    #[arg(short, long, action = ArgAction::Count, global = true)]
+    quiet: u8,
 }
 
 #[derive(clap::Subcommand, Debug)]
@@ -106,12 +115,76 @@ enum SubCommand {
 }
 
 #[tokio::main]
-async fn main() -> anyhow::Result<()> {
+async fn main() -> std::process::ExitCode {
     let _ = dotenvy::dotenv();
     let matches = cli_command().get_matches();
-    let cli = Cli::from_arg_matches(&matches)?;
+    let cli = Cli::from_arg_matches(&matches)
+        .expect("arguments parsed by the same clap command must be valid");
 
-    match cli.subcommand {
+    if let Err(error) = setup_logging(&cli) {
+        eprintln!("ERROR ログの初期化に失敗しました: {error:#}");
+        return std::process::ExitCode::FAILURE;
+    }
+
+    if let Err(error) = run(cli.subcommand).await {
+        tracing::error!("{error:#}");
+        return std::process::ExitCode::FAILURE;
+    }
+
+    std::process::ExitCode::SUCCESS
+}
+
+fn log_level_filter(cli: &Cli) -> LevelFilter {
+    match (cli.quiet, cli.verbose) {
+        (quiet, _) if quiet > 0 => LevelFilter::OFF,
+        (_, 0) => LevelFilter::INFO,
+        (_, 1) => LevelFilter::DEBUG,
+        (_, _) => LevelFilter::TRACE,
+    }
+}
+
+fn setup_logging(cli: &Cli) -> anyhow::Result<()> {
+    use tracing_subscriber::prelude::*;
+
+    let (dependency_level, application_level) = match log_level_filter(cli) {
+        LevelFilter::OFF => (LevelFilter::OFF, LevelFilter::OFF),
+        LevelFilter::ERROR => (LevelFilter::ERROR, LevelFilter::ERROR),
+        LevelFilter::WARN => (LevelFilter::WARN, LevelFilter::WARN),
+        LevelFilter::INFO => (LevelFilter::WARN, LevelFilter::INFO),
+        LevelFilter::DEBUG => (LevelFilter::INFO, LevelFilter::DEBUG),
+        LevelFilter::TRACE => (LevelFilter::DEBUG, LevelFilter::TRACE),
+    };
+
+    let application_directive = format!("edinet={application_level}");
+    let directives = if cli.verbose > 0 || cli.quiet > 0 {
+        application_directive
+    } else {
+        match std::env::var("RUST_LOG") {
+            Ok(env_directives) if !env_directives.is_empty() => {
+                format!("{application_directive},{env_directives}")
+            }
+            _ => application_directive,
+        }
+    };
+    let env_filter = EnvFilter::builder()
+        .with_default_directive(dependency_level.into())
+        .parse(directives)?;
+    let fmt_layer = tracing_subscriber::fmt::layer()
+        .with_ansi(std::io::stderr().is_terminal())
+        .with_level(application_level >= LevelFilter::DEBUG)
+        .with_target(application_level >= LevelFilter::DEBUG)
+        .with_writer(std::io::stderr)
+        .without_time();
+
+    tracing_subscriber::registry()
+        .with(env_filter)
+        .with(fmt_layer)
+        .try_init()?;
+    Ok(())
+}
+
+async fn run(subcommand: SubCommand) -> anyhow::Result<()> {
+    match subcommand {
         SubCommand::Setup(command) => crate::app_config::run_setup(command)?,
         SubCommand::Update(command) => crate::updater::command::run(command).await?,
         SubCommand::Search(command) => crate::searcher::command::run(command).await?,
@@ -164,7 +237,10 @@ fn localize_help(command: Command) -> Command {
 
 #[cfg(test)]
 mod tests {
-    use super::cli_command;
+    use clap::Parser;
+    use tracing_subscriber::filter::LevelFilter;
+
+    use super::{Cli, cli_command, log_level_filter};
 
     fn render_help(path: &[&str]) -> String {
         let mut command = cli_command();
@@ -188,6 +264,21 @@ mod tests {
             .try_get_matches_from(args)
             .expect_err("help flag must stop argument parsing")
             .to_string()
+    }
+
+    #[test]
+    fn ログレベルはquietを優先しverboseの回数に応じて切り替わる() {
+        let cli = Cli::try_parse_from(["edinet", "status"]).unwrap();
+        assert_eq!(log_level_filter(&cli), LevelFilter::INFO);
+
+        let cli = Cli::try_parse_from(["edinet", "-v", "status"]).unwrap();
+        assert_eq!(log_level_filter(&cli), LevelFilter::DEBUG);
+
+        let cli = Cli::try_parse_from(["edinet", "-vv", "status"]).unwrap();
+        assert_eq!(log_level_filter(&cli), LevelFilter::TRACE);
+
+        let cli = Cli::try_parse_from(["edinet", "-vv", "-q", "status"]).unwrap();
+        assert_eq!(log_level_filter(&cli), LevelFilter::OFF);
     }
 
     #[test]
@@ -222,9 +313,11 @@ mod tests {
         assert!(help.contains("edinet update"));
         assert!(help.contains("edinet <COMMAND> --help"));
         assert!(help.contains("EDINET の有価証券報告書を取得・解析するCLIツール"));
-        assert!(help.contains("使い方: edinet <COMMAND>"));
+        assert!(help.contains("使い方: edinet [OPTIONS] <COMMAND>"));
         assert!(help.contains("コマンド:"));
         assert!(help.contains("オプション:"));
+        assert!(help.contains("ログの詳細度を上げます（-v: デバッグ、-vv: トレース）"));
+        assert!(help.contains("ログを表示しません"));
         for alias in [
             "[aliases: init]",
             "[aliases: u]",

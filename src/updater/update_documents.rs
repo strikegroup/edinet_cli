@@ -55,18 +55,20 @@ pub async fn update_missing_days(
     let missing_dates = find_missing_update_dates(db, start_date, end_date).await?;
 
     if missing_dates.is_empty() {
-        println!(
+        tracing::info!(
             "No missing update dates found from {} to {}",
-            start_date, end_date
+            start_date,
+            end_date
         );
         return Ok(());
     }
 
-    println!(
-        "Updating {} missing dates from {} to {}",
+    tracing::info!(
+        "Updating {} missing dates from {} to {} with concurrency {}",
         missing_dates.len(),
         start_date,
-        end_date
+        end_date,
+        concurrency
     );
     update_dates(db, missing_dates, api_key, concurrency).await
 }
@@ -95,7 +97,7 @@ pub async fn update_one_day(
     file_date: &chrono::NaiveDate,
     api_key: &str,
 ) -> anyhow::Result<()> {
-    println!("Updating document metadata for {}", file_date);
+    tracing::info!("Updating document metadata for {}", file_date);
     let fetched_document_metadatas =
         crate::updater::fetch_document_metadatas::fetch_document_metadatas(file_date, api_key)
             .await?;
@@ -108,7 +110,7 @@ pub async fn update_one_day(
     .await
     .with_context(|| format!("failed to save document metadata for {}", file_date))?;
 
-    println!(
+    tracing::info!(
         "Saved {} documents for {}",
         fetched_document_metadatas.results.len(),
         file_date
@@ -147,7 +149,7 @@ async fn update_dates(
             .await
             .with_context(|| format!("failed to save document metadata for {}", file_date))?;
 
-        println!(
+        tracing::info!(
             "Saved {} documents for {}",
             fetched.results.len(),
             file_date
@@ -173,7 +175,7 @@ fn spawn_fetch_task(
     let client = client.clone();
     let api_key = api_key.to_owned();
     tasks.spawn(async move {
-        println!("Fetching document metadata for {}", file_date);
+        tracing::debug!("Fetching document metadata for {}", file_date);
         let result =
             crate::updater::fetch_document_metadatas::fetch_document_metadatas_with_client(
                 &client, &file_date, &api_key,

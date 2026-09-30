@@ -43,10 +43,12 @@ pub async fn fetch_document_metadatas_with_client(
 
         if status == reqwest::StatusCode::TOO_MANY_REQUESTS && attempt + 1 < MAX_FETCH_ATTEMPTS {
             let delay = retry_delay(attempt);
-            eprintln!(
-                "EDINET API rate limit reached for {}; retrying in {} seconds",
+            tracing::warn!(
+                "EDINET API rate limit reached for {}; retrying in {} seconds (attempt {}/{})",
                 date,
-                delay.as_secs()
+                delay.as_secs(),
+                attempt + 1,
+                MAX_FETCH_ATTEMPTS
             );
             tokio::time::sleep(delay).await;
             continue;
