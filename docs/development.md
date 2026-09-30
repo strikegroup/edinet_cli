@@ -6,8 +6,14 @@
 
 ### 1. 前提ツールを用意する
 
-- Rust（`cargo` が使える状態）
+- mise（Rust、Node.js、Python と開発用 CLI の管理）
 - SQLite（`sqlite3` コマンド。DB の中身を直接確認したい場合のみ）
+
+Rust、Node.js 24、Python、GitHub CLI、cargo-dist、release-plz、cargo-about は `mise.toml` で管理します。
+
+```bash
+mise install
+```
 
 ### 2. リポジトリを取得して移動する
 
@@ -185,13 +191,65 @@ cargo run -- clear
 
 このコマンドは現在利用している SQLite DB ファイルと CSV キャッシュを削除します。`config.toml` に保存した API キーは残ります。
 
+## リリース
 
+通常のリリースは、`main` への push を契機に release-plz が作成・更新する Release PR を使います。手動でバージョンタグを作成したり、Release PR のマージ前に `cargo publish` したりしないでください。
+
+Release PR を確認します。
+
+```bash
+gh pr list --state open --search 'head:release-plz-'
+```
+
+release-plz が提案したバージョンでよければ、Release PR のバージョンは変更しません。`0.1.0` など、意図したバージョンへ変更する場合は PR のブランチで `release-plz set-version` を実行します。`Cargo.toml`、`Cargo.lock`、`CHANGELOG.md` を個別に手修正する必要はありません。
+
+```bash
+gh pr checkout <RELEASE_PR_NUMBER>
+mise exec -- release-plz set-version 0.1.0
+git diff -- Cargo.toml Cargo.lock CHANGELOG.md
+```
+
+変更後は公開前チェックを実行し、Release PR のブランチへ push します。
+
+```bash
+cargo fmt --check
+cargo test --locked
+cargo publish --dry-run --allow-dirty
+git add Cargo.toml Cargo.lock CHANGELOG.md
+git commit -m "chore: release v0.1.0"
+git push
+gh pr edit <RELEASE_PR_NUMBER> --title "chore: release v0.1.0"
+```
+
+上の `0.1.0` は実際に公開するバージョンに読み替えます。PR の Actions が `action_required` の場合は GitHub 上で実行を承認します。権限がある場合は GitHub CLI からも承認できます。
+
+```bash
+gh api --method POST \
+  repos/strikegroup/edinet_cli/actions/runs/<RUN_ID>/approve
+```
+
+CI 成功後に Release PR を `main` へマージすると、release-plz が crates.io への公開と draft GitHub Release の作成を行います。続けて cargo-dist が各 OS 向けバイナリを追加し、GitHub Release、Homebrew、npm、APT へ公開します。
+
+公開ワークフローと各配布先のバージョンを確認します。
+
+```bash
+gh run list --limit 10
+gh run watch <RUN_ID> --exit-status
+gh release view v0.1.0
+cargo search edinet_cli --limit 1
+npm view edinet-cli version
+brew update
+brew info strikegroup/tap/edinet
+curl --fail --head \
+  https://strikegroup.github.io/edinet_cli/apt/dists/stable/InRelease
+```
+
+npm と APT の初期設定や障害対応は、`publish-npm.md` と `publish-apt.md` を参照してください。
 
 ## ライセンス更新
 
-依存クレートのライセンス文書を更新するには、`cargo-about` 0.9.2 をインストールして生成コマンドを実行します。生成された `THIRD_PARTY_LICENSES.html` もリポジトリへコミットしてください。
+依存クレートのライセンス文書を更新するには、`mise.toml` で管理している cargo-about を使って生成コマンドを実行します。生成された `THIRD_PARTY_LICENSES.html` もリポジトリへコミットしてください。
 
 ```bash
-cargo install --locked cargo-about --version 0.9.2 --features cli
-cargo about generate --locked --fail --output-file THIRD_PARTY_LICENSES.html about.hbs
+mise exec -- cargo about generate --locked --fail --output-file THIRD_PARTY_LICENSES.html about.hbs
 ```
