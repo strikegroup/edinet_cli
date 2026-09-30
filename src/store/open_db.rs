@@ -15,6 +15,7 @@ use crate::store::entities::{document_metadata, updated_document_metadata};
 ///
 /// `DATABASE_URL` が設定されていればそれを使い、未設定の場合は
 /// アプリ既定の DB パス（`app_paths::default_database_path`）を使う。
+#[tracing::instrument(level = "trace", name = "database.open", skip_all)]
 pub async fn open_db_connection() -> anyhow::Result<DatabaseConnection> {
     let database_url = if let Ok(sqlite_url) = std::env::var("DATABASE_URL") {
         sqlite_database_url_with_create_mode(sqlite_url)
@@ -42,6 +43,7 @@ pub async fn open_db_connection() -> anyhow::Result<DatabaseConnection> {
 /// 既存 SQLite DB だけに接続する。
 ///
 /// 読み取り専用の状態確認で、DB ファイルや schema を作成しない接続として使う。
+#[tracing::instrument(level = "trace", name = "database.open_existing", skip_all)]
 pub async fn open_existing_db_connection() -> anyhow::Result<Option<DatabaseConnection>> {
     let db_path = crate::app_paths::current_database_path()?;
     if !db_path.exists() {

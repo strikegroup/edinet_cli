@@ -8,6 +8,7 @@ use super::asr_report::AsrReport;
 use super::xbrl_fact::{XbrlCsvRecord, XbrlFact, XbrlFactIndex};
 
 /// 読み込み済み CSV を有価証券報告書の抽出結果に変換する。
+#[tracing::instrument(level = "trace", name = "report.extract", skip_all)]
 pub(in crate::getter) fn extract_asr_report_from_csv(
     reader: &mut csv::Reader<std::io::Cursor<Vec<u8>>>,
 ) -> anyhow::Result<AsrReport> {

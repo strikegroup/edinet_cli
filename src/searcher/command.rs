@@ -97,6 +97,7 @@ pub struct SearchArgs {
     pub json: bool,
 }
 
+#[tracing::instrument(level = "trace", name = "command.search", skip_all)]
 pub async fn run(args: SearchArgs) -> anyhow::Result<()> {
     let (condition, output_json) = build_search_condition(args)?;
 

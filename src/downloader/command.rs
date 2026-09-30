@@ -60,6 +60,7 @@ pub struct DownloadArgs {
     pub key: Option<String>,
 }
 
+#[tracing::instrument(level = "trace", name = "command.download", skip_all)]
 pub async fn run(args: DownloadArgs) -> anyhow::Result<()> {
     if args.doc_id.is_none()
         && args.edinet_code.is_none()

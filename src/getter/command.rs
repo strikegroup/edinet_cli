@@ -65,6 +65,7 @@ pub struct GetArgs {
     pub format: Option<String>,
 }
 
+#[tracing::instrument(level = "trace", name = "command.get", skip_all)]
 pub async fn run(args: GetArgs) -> anyhow::Result<()> {
     let api_key = if args.offline {
         None

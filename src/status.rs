@@ -83,6 +83,7 @@ pub async fn print_status(db: Option<&DatabaseConnection>) -> anyhow::Result<()>
     Ok(())
 }
 
+#[tracing::instrument(level = "trace", name = "command.status", skip_all)]
 pub async fn run() -> anyhow::Result<()> {
     let db = crate::store::open_db::open_existing_db_connection().await?;
     print_status(db.as_ref()).await

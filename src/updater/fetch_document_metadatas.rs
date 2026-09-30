@@ -22,6 +22,12 @@ pub async fn fetch_document_metadatas(
 }
 
 /// 共有 HTTP クライアントを使って日次書類メタデータ一覧を取得する。
+#[tracing::instrument(
+    level = "trace",
+    name = "edinet_api.fetch_document_metadatas",
+    skip(client, date, api_key),
+    fields(file_date = %date)
+)]
 pub async fn fetch_document_metadatas_with_client(
     client: &reqwest::Client,
     date: &chrono::NaiveDate,

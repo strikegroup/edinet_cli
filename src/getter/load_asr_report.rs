@@ -18,6 +18,7 @@ pub async fn load_asr_report_by_metadata(
 }
 
 /// `doc_id` のみを使って有価証券報告書を読み込む。
+#[tracing::instrument(level = "trace", name = "report.load", skip(api_key))]
 pub async fn load_asr_report_by_doc_id(
     doc_id: &str,
     api_key: Option<&str>,

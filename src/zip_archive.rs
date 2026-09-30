@@ -9,6 +9,7 @@ const MAX_ENTRY_COUNT: usize = 20_000;
 const MAX_UNCOMPRESSED_SIZE: u64 = 2 * 1024 * 1024 * 1024;
 
 /// ZIP アーカイブを、展開先の外へ書き込まないよう検証しながら展開する。
+#[tracing::instrument(level = "trace", name = "archive.extract")]
 pub async fn extract(
     archive_path: &std::path::Path,
     extract_to: &std::path::Path,

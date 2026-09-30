@@ -142,6 +142,7 @@ fn resolve_api_key_from_sources(
     load_config_api_key()
 }
 
+#[tracing::instrument(level = "trace", name = "command.setup", skip_all)]
 pub fn run_setup(args: SetupArgs) -> anyhow::Result<()> {
     let path = save_api_key(&args.key)?;
     println!("Saved EDINET API key to {}", path.display());

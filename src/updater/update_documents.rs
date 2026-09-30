@@ -120,6 +120,12 @@ pub async fn update_one_day(
 }
 
 /// 日次 API の取得を限定並列化し、取得できたデータを順に DB へ保存する。
+#[tracing::instrument(
+    level = "trace",
+    name = "update.dates",
+    skip(db, dates, api_key, concurrency),
+    fields(date_count = dates.len(), concurrency)
+)]
 async fn update_dates(
     db: &DatabaseConnection,
     dates: Vec<chrono::NaiveDate>,
@@ -200,6 +206,12 @@ fn dates_in_range(
     Ok(dates)
 }
 
+#[tracing::instrument(
+    level = "trace",
+    name = "database.find_missing_update_dates",
+    skip(db, start_date, end_date),
+    fields(start_date = %start_date, end_date = %end_date)
+)]
 async fn find_missing_update_dates(
     db: &DatabaseConnection,
     start_date: &chrono::NaiveDate,

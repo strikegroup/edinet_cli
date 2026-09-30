@@ -20,6 +20,7 @@ use std::io::IsTerminal;
 use clap::{Command, CommandFactory, FromArgMatches, Parser};
 use clap_verbosity_flag::{InfoLevel, Verbosity};
 use tracing_subscriber::filter::{LevelFilter, Targets};
+use tracing_subscriber::fmt::format::FmtSpan;
 
 const HELP_TEMPLATE: &str =
     "{before-help}{about-with-newline}\n使い方: {usage}\n\n{all-args}{after-help}";
@@ -149,13 +150,19 @@ fn setup_logging(cli: &Cli) -> anyhow::Result<()> {
         .with_ansi(std::io::stderr().is_terminal())
         .with_level(application_level >= LevelFilter::DEBUG)
         .with_target(application_level >= LevelFilter::DEBUG)
-        .with_writer(std::io::stderr)
-        .without_time();
+        .with_writer(std::io::stderr);
 
-    tracing_subscriber::registry()
-        .with(filter)
-        .with(fmt_layer)
-        .try_init()?;
+    if application_level >= LevelFilter::TRACE {
+        tracing_subscriber::registry()
+            .with(filter)
+            .with(fmt_layer.with_span_events(FmtSpan::CLOSE))
+            .try_init()?;
+    } else {
+        tracing_subscriber::registry()
+            .with(filter)
+            .with(fmt_layer.without_time())
+            .try_init()?;
+    }
     Ok(())
 }
 

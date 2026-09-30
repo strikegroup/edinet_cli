@@ -21,6 +21,7 @@ struct ClearTarget {
 }
 
 /// 保存済みのローカルデータを、確認後に削除する。
+#[tracing::instrument(level = "trace", name = "command.clear", skip_all)]
 pub fn clear_local_data(args: ClearArgs) -> anyhow::Result<()> {
     let database_path = crate::app_paths::current_database_path()?;
     let csv_cache_dir = crate::app_paths::current_csv_cache_dir()?;

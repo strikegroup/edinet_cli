@@ -18,6 +18,12 @@ const DOCUMENT_METADATA_INSERT_CHUNK_SIZE: usize =
 /// 取得した 1 日分の書類メタデータを DB に保存する。
 ///
 /// 同一 `file_date` の既存メタデータは削除してから再投入する。
+#[tracing::instrument(
+    level = "trace",
+    name = "database.save_document_metadatas",
+    skip(db, file_date, fetched),
+    fields(file_date = %file_date, document_count = fetched.results.len())
+)]
 pub async fn save_document_metadatas(
     db: &DatabaseConnection,
     file_date: &chrono::NaiveDate,

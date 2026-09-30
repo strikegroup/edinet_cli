@@ -18,6 +18,11 @@ pub(in crate::getter) async fn download_and_extract_xbrl_csv_archive(
     Ok(())
 }
 
+#[tracing::instrument(
+    level = "trace",
+    name = "edinet_api.download_xbrl_csv",
+    skip(api_key, dest)
+)]
 async fn download_xbrl_csv_archive(
     doc_id: &str,
     api_key: &str,

@@ -13,6 +13,7 @@ pub enum DocType {
 }
 
 /// 書類種別に応じて書類取得 API からバイナリデータをダウンロードする。
+#[tracing::instrument(level = "trace", name = "document.download", skip(api_key))]
 pub async fn download_document(
     doc_type: &DocType,
     doc_id: &str,

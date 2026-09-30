@@ -57,6 +57,12 @@ pub struct SearchCondition {
     pub sort: SearchSort,
 }
 
+#[tracing::instrument(
+    level = "trace",
+    name = "database.search_documents",
+    skip(db, condition),
+    fields(limit = ?condition.limit, offset = condition.offset)
+)]
 pub async fn search_asr_document_metadatas(
     db: &DatabaseConnection,
     condition: &SearchCondition,

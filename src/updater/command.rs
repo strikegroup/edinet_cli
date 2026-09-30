@@ -71,6 +71,7 @@ pub struct UpdateArgs {
     pub key: Option<String>,
 }
 
+#[tracing::instrument(level = "trace", name = "command.update", skip_all)]
 pub async fn run(args: UpdateArgs) -> anyhow::Result<()> {
     let concurrency = if args.sequential {
         1
