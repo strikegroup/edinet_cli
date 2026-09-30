@@ -174,7 +174,7 @@ const PERIOD_CONTEXTS: &[PeriodContext] = &[
 pub(in crate::getter) fn extract_company_overview(index: &XbrlFactIndex) -> CompanyOverview {
     CompanyOverview {
         company_history: text(index, COMPANY_HISTORY),
-        employees: text(index, EMPLOYEES),
+        employees_overview: text(index, EMPLOYEES),
         business_results_summary: extract_business_results_summary(index),
     }
 }
@@ -194,7 +194,7 @@ fn extract_business_results_summary(index: &XbrlFactIndex) -> Vec<BusinessResult
             BusinessResultsPeriod {
                 period: period.period.to_owned(),
                 label: period.label.to_owned(),
-                operating_revenue: i64_value(
+                operating_revenue_summary: i64_value(
                     index,
                     OPERATING_REVENUE_IDS,
                     period.duration_contexts,
@@ -267,7 +267,7 @@ fn extract_business_results_summary(index: &XbrlFactIndex) -> Vec<BusinessResult
                     &[TOTAL_SHAREHOLDER_RETURN],
                     period.instant_contexts,
                 ),
-                employees: i64_value(index, &[NUMBER_OF_EMPLOYEES], period.instant_contexts),
+                employees_count: i64_value(index, &[NUMBER_OF_EMPLOYEES], period.instant_contexts),
             }
         })
         .collect()
@@ -370,7 +370,7 @@ mod tests {
         let current = &overview.business_results_summary[0];
         let prior1 = &overview.business_results_summary[1];
 
-        assert_eq!(current.operating_revenue, Some(200));
+        assert_eq!(current.operating_revenue_summary, Some(200));
         assert_eq!(current.net_income, Some(80));
         assert_eq!(prior1.net_assets, Some(300));
     }
@@ -409,7 +409,7 @@ mod tests {
             let overview = extract_company_overview(&index);
 
             assert_eq!(
-                overview.business_results_summary[0].operating_revenue,
+                overview.business_results_summary[0].operating_revenue_summary,
                 Some(expected),
                 "{element_id} を売上高・営業収益として扱うべき"
             );
@@ -463,7 +463,7 @@ mod tests {
         assert_eq!(current.financing_cash_flow, Some(25));
         assert_eq!(current.cash_and_equivalents, Some(999));
         assert_eq!(current.total_shareholder_return, Some(1.15));
-        assert_eq!(current.employees, Some(1234));
+        assert_eq!(current.employees_count, Some(1234));
     }
 
     #[test]

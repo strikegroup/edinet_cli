@@ -93,17 +93,17 @@ edinet get --company ストライク
   "report": {
     "company_overview": {
       "company_history": "２ 【沿革】 年月概要1997年７月東京都足立区において、Ｍ＆Ａ仲介業務を事業目的として設立...",
-      "employees": "５ 【従業員の状況】(1) 提出会社の状況2025年９月30日現在...",
+      "employees_overview": "５ 【従業員の状況】(1) 提出会社の状況2025年９月30日現在...",
       "business_results_summary": [
         {
           "period": "CurrentYear",
           "label": "当期",
-          "operating_revenue": 20314153000,
+          "operating_revenue_summary": 20314153000,
           "ordinary_income": 6341778000,
           "net_income": 4719993000,
           "net_assets": 21474522000,
           "total_assets": 24763151000,
-          "employees": 452
+          "employees_count": 452
         },
         "..."
       ]
@@ -129,7 +129,7 @@ edinet get --company ストライク --offline
 主要な経営指標から、最新年度の営業収益だけを取得します。
 
 ```bash
-edinet get --company ストライク | jq '.report.company_overview.business_results_summary[0].operating_revenue'
+edinet get --company ストライク | jq '.report.company_overview.business_results_summary[0].operating_revenue_summary'
 ```
 
 ```json
@@ -449,7 +449,6 @@ edinet get --company トヨタ --key <YOUR_EDINET_API_KEY>
 
 `--doc-id` は `--edinet-code`、`--company`、`--year` と併用できません。条件に一致する書類が複数ある場合は、その年に提出された最新の有価証券報告書を取得します。
 `--lang ja` を指定したときだけ、JSON のフィールド名を日本語ラベルで出力します。既定は `--lang en` です。
-`--format` には jq 互換フィルタを指定できます。フィールド選択だけでなく、`.items[]` のように複数の結果を生成するフィルタにも対応し、各結果を JSON として順番に出力します。
 
 ### `download`
 
@@ -504,38 +503,6 @@ edinet clear -y
 ```bash
 edinet status
 ```
-
-## 出力される主な項目
-
-`get` の結果は、保存済み書類メタデータ由来の `metadata` と、XBRL CSV から抽出した `report` を返します。
-`--doc-id` 直接指定時は保存済み書類メタデータを経由しないため、`metadata` は `null` です。
-`report` は有価証券報告書の章立てに沿って出力されます。
-
-- `company_overview`
-  - `company_history`
-  - `employees`
-  - `business_results_summary`
-- `business_overview`
-  - `business_description`
-  - `performance`
-  - `issues_to_address`
-  - `risks`
-  - `sustainability`
-  - `research_and_development`
-  - `critical_contracts`
-- `facilities`
-  - `capital_expenditures`
-  - `major_facilities`
-  - `facility_plans`
-- `corporate_information`
-  - `shareholding`
-  - `major_shareholders`
-  - `dividend_policy`
-  - `officers`
-  - `corporate_governance`
-  - `officer_compensation`
-- `financial_information`
-  - `segment_information`
 
 ## 開発者向け情報
 

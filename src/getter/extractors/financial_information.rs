@@ -86,12 +86,12 @@ pub(in crate::getter) fn extract_financial_information(
 fn extract_primary_statements(index: &XbrlFactIndex) -> PrimaryFinancialStatements {
     PrimaryFinancialStatements {
         balance_sheet: BalanceSheetPeriods {
-            current: extract_balance_sheet(index, CURRENT_YEAR_INSTANT_CONTEXTS),
-            prior: extract_balance_sheet(index, PRIOR1_YEAR_INSTANT_CONTEXTS),
+            current_period: extract_balance_sheet(index, CURRENT_YEAR_INSTANT_CONTEXTS),
+            prior_period: extract_balance_sheet(index, PRIOR1_YEAR_INSTANT_CONTEXTS),
         },
         profit_and_loss: ProfitAndLossPeriods {
-            current: extract_profit_and_loss(index, CURRENT_YEAR_DURATION_CONTEXTS),
-            prior: extract_profit_and_loss(index, PRIOR1_YEAR_DURATION_CONTEXTS),
+            current_period: extract_profit_and_loss(index, CURRENT_YEAR_DURATION_CONTEXTS),
+            prior_period: extract_profit_and_loss(index, PRIOR1_YEAR_DURATION_CONTEXTS),
         },
     }
 }
@@ -224,7 +224,7 @@ mod tests {
             financial_information
                 .primary_statements
                 .balance_sheet
-                .current
+                .current_period
                 .assets,
             Some(1000)
         );
@@ -232,7 +232,7 @@ mod tests {
             financial_information
                 .primary_statements
                 .balance_sheet
-                .current
+                .current_period
                 .current_liabilities,
             Some(250)
         );
@@ -240,7 +240,7 @@ mod tests {
             financial_information
                 .primary_statements
                 .balance_sheet
-                .prior
+                .prior_period
                 .assets,
             Some(900)
         );
@@ -248,7 +248,7 @@ mod tests {
             financial_information
                 .primary_statements
                 .profit_and_loss
-                .current
+                .current_period
                 .operating_revenue,
             Some(700)
         );
@@ -256,7 +256,7 @@ mod tests {
             financial_information
                 .primary_statements
                 .profit_and_loss
-                .current
+                .current_period
                 .ordinary_income,
             Some(180)
         );
@@ -264,7 +264,7 @@ mod tests {
             financial_information
                 .primary_statements
                 .profit_and_loss
-                .prior
+                .prior_period
                 .operating_revenue,
             Some(650)
         );
@@ -272,7 +272,7 @@ mod tests {
             financial_information
                 .primary_statements
                 .profit_and_loss
-                .prior
+                .prior_period
                 .profit_loss,
             Some(110)
         );
@@ -300,7 +300,7 @@ mod tests {
             financial_information
                 .primary_statements
                 .profit_and_loss
-                .current
+                .current_period
                 .operating_revenue,
             Some(1000)
         );
@@ -308,7 +308,7 @@ mod tests {
             financial_information
                 .primary_statements
                 .profit_and_loss
-                .prior
+                .prior_period
                 .operating_revenue,
             Some(900)
         );
@@ -327,7 +327,7 @@ mod tests {
             financial_information
                 .primary_statements
                 .profit_and_loss
-                .current
+                .current_period
                 .operating_expenses,
             Some(500)
         );
@@ -344,7 +344,7 @@ mod tests {
             financial_information
                 .primary_statements
                 .profit_and_loss
-                .current
+                .current_period
                 .operating_expenses,
             Some(480)
         );

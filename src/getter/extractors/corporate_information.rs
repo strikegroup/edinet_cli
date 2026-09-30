@@ -242,13 +242,13 @@ fn extract_policy_shareholdings_for_elements(
             holder_name: policy_shareholding_holder_name(index, elements.holder_scope),
             row_number,
             issue_name,
-            current: extract_policy_shareholding_period(
+            current_fiscal_year: extract_policy_shareholding_period(
                 index,
                 elements,
                 row_number,
                 "CurrentYearInstant",
             ),
-            prior: extract_policy_shareholding_period(
+            prior_fiscal_year: extract_policy_shareholding_period(
                 index,
                 elements,
                 row_number,
@@ -594,10 +594,10 @@ mod tests {
             Some("株式会社最大保有")
         );
         assert_eq!(specified_holding.issue_name, "株式会社テスト");
-        assert_eq!(specified_holding.current.shares, Some(100));
-        assert_eq!(specified_holding.prior.shares, Some(90));
-        assert_eq!(specified_holding.current.book_value, Some(1200));
-        assert_eq!(specified_holding.prior.book_value, Some(1000));
+        assert_eq!(specified_holding.current_fiscal_year.shares, Some(100));
+        assert_eq!(specified_holding.prior_fiscal_year.shares, Some(90));
+        assert_eq!(specified_holding.current_fiscal_year.book_value, Some(1200));
+        assert_eq!(specified_holding.prior_fiscal_year.book_value, Some(1000));
         assert_eq!(
             specified_holding.combined_purpose_and_effects.as_deref(),
             Some("取引関係の維持を目的に保有")
@@ -615,7 +615,7 @@ mod tests {
             PolicyShareholdingCategory::DeemedHolding
         );
         assert_eq!(deemed_holding.issue_name, "株式会社みなし");
-        assert!(deemed_holding.prior.shares_not_disclosed);
+        assert!(deemed_holding.prior_fiscal_year.shares_not_disclosed);
         assert_eq!(
             deemed_holding.purpose_of_shareholding.as_deref(),
             Some("議決権行使の指図権を保有")

@@ -64,7 +64,7 @@ mod tests {
             Some("沿革本文")
         );
         assert_eq!(
-            report.company_overview.business_results_summary[0].operating_revenue,
+            report.company_overview.business_results_summary[0].operating_revenue_summary,
             Some(123)
         );
         assert_eq!(
@@ -90,7 +90,7 @@ mod tests {
                 .financial_information
                 .primary_statements
                 .balance_sheet
-                .current
+                .current_period
                 .assets,
             Some(1000)
         );
@@ -99,7 +99,7 @@ mod tests {
                 .financial_information
                 .primary_statements
                 .profit_and_loss
-                .current
+                .current_period
                 .operating_revenue,
             Some(700)
         );

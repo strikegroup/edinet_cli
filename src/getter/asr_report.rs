@@ -19,7 +19,7 @@ pub struct AsrReport {
 /// 第1 企業の概況。
 pub struct CompanyOverview {
     pub company_history: Option<String>,
-    pub employees: Option<String>,
+    pub employees_overview: Option<String>,
     /// EDINET タクソノミの `*SummaryOfBusinessResults` 群を、
     /// 「主要な経営指標等の推移」の 5 期時系列として並べたもの。
     pub business_results_summary: Vec<BusinessResultsPeriod>,
@@ -113,8 +113,8 @@ pub struct PolicyShareholding {
     pub holder_name: Option<String>,
     pub row_number: u32,
     pub issue_name: String,
-    pub current: PolicyShareholdingPeriod,
-    pub prior: PolicyShareholdingPeriod,
+    pub current_fiscal_year: PolicyShareholdingPeriod,
+    pub prior_fiscal_year: PolicyShareholdingPeriod,
     pub purpose_of_shareholding: Option<String>,
     pub business_alliance_overview: Option<String>,
     pub quantitative_effects: Option<String>,
@@ -172,8 +172,8 @@ pub struct PrimaryFinancialStatements {
 #[derive(Debug, Clone, Default, serde::Serialize)]
 /// 貸借対照表主要科目の当期・前期。
 pub struct BalanceSheetPeriods {
-    pub current: BalanceSheetItems,
-    pub prior: BalanceSheetItems,
+    pub current_period: BalanceSheetItems,
+    pub prior_period: BalanceSheetItems,
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize)]
@@ -193,8 +193,8 @@ pub struct BalanceSheetItems {
 #[derive(Debug, Clone, Default, serde::Serialize)]
 /// 損益計算書主要科目の当期・前期。
 pub struct ProfitAndLossPeriods {
-    pub current: ProfitAndLossItems,
-    pub prior: ProfitAndLossItems,
+    pub current_period: ProfitAndLossItems,
+    pub prior_period: ProfitAndLossItems,
 }
 
 #[derive(Debug, Clone, Default, serde::Serialize)]
@@ -219,7 +219,7 @@ pub struct ProfitAndLossItems {
 pub struct BusinessResultsPeriod {
     pub period: String,
     pub label: String,
-    pub operating_revenue: Option<i64>,
+    pub operating_revenue_summary: Option<i64>,
     pub ordinary_income: Option<i64>,
     pub net_income: Option<i64>,
     pub net_assets: Option<i64>,
@@ -238,5 +238,5 @@ pub struct BusinessResultsPeriod {
     pub financing_cash_flow: Option<i64>,
     pub cash_and_equivalents: Option<i64>,
     pub total_shareholder_return: Option<f64>,
-    pub employees: Option<i64>,
+    pub employees_count: Option<i64>,
 }

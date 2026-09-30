@@ -59,7 +59,7 @@ pub struct GetArgs {
     #[arg(
         long,
         short = 'f',
-        value_name = "FILTER",
+        value_name = "JQ_FILTER",
         help = "jq 互換フィルタを適用して JSON の出力項目を選択します"
     )]
     pub format: Option<String>,
@@ -132,31 +132,37 @@ fn print_get_output(
     language: OutputLanguage,
     jq_filter: Option<&str>,
 ) -> anyhow::Result<()> {
-    if matches!(language, OutputLanguage::Ja) {
-        let output =
-            crate::getter::output::get_command_output_ja::GetCommandOutputJa::new(metadata, report);
-        print!("{}", render_output(&output, jq_filter)?);
-        return Ok(());
-    }
-
     let output = crate::getter::output::get_command_output::GetCommandOutput::new(metadata, report);
-    print!("{}", render_output(&output, jq_filter)?);
+    print!("{}", render_output(&output, language, jq_filter)?);
     Ok(())
 }
 
 fn render_output(
     output: &impl serde::Serialize,
+    language: OutputLanguage,
     jq_filter: Option<&str>,
 ) -> anyhow::Result<String> {
-    let json = serde_json::to_string_pretty(output)?;
-    let Some(jq_filter) = jq_filter else {
-        return Ok(format!("{json}\n"));
+    let value = serde_json::to_value(output)?;
+    let mut values = match jq_filter {
+        Some(jq_filter) => apply_jq_filter(&value, jq_filter)?,
+        None => vec![value],
     };
 
-    apply_jq_filter(&json, jq_filter)
+    let mut rendered = String::new();
+    for value in &mut values {
+        if matches!(language, OutputLanguage::Ja) {
+            crate::getter::output::output_key_translation::translate_keys_to_ja(value);
+        }
+        rendered.push_str(&serde_json::to_string_pretty(value)?);
+        rendered.push('\n');
+    }
+    Ok(rendered)
 }
 
-fn apply_jq_filter(json: &str, jq_filter: &str) -> anyhow::Result<String> {
+fn apply_jq_filter(
+    json: &serde_json::Value,
+    jq_filter: &str,
+) -> anyhow::Result<Vec<serde_json::Value>> {
     let filter = jaq_all::compile_with(jq_filter, jaq_all::defs(), jaq_all::data::base_funs(), &[])
         .map_err(|reports| {
             let details = reports
@@ -166,14 +172,15 @@ fn apply_jq_filter(json: &str, jq_filter: &str) -> anyhow::Result<String> {
                 .join("");
             anyhow::anyhow!("invalid jq filter:\n{details}")
         })?;
-    let input = jaq_all::json::read::parse_single(json.as_bytes())
+    let json = serde_json::to_vec(json)?;
+    let input = jaq_all::json::read::parse_single(&json)
         .map_err(|error| anyhow::anyhow!("failed to prepare JSON for jq filter: {error}"))?;
 
     let mut runner = jaq_all::data::Runner::default();
     runner.writer.pp.indent = Some("  ".to_owned());
     runner.writer.pp.sep_space = true;
 
-    let mut rendered = Vec::new();
+    let mut values = Vec::new();
     jaq_all::data::run(
         &runner,
         &filter,
@@ -183,27 +190,30 @@ fn apply_jq_filter(json: &str, jq_filter: &str) -> anyhow::Result<String> {
         |value| {
             let value =
                 unwrap_valr(value).map_err(|error| anyhow::anyhow!("jq filter failed: {error}"))?;
+            let mut rendered = Vec::new();
             jaq_all::json::write::write(&mut rendered, &runner.writer.pp, 0, &value)?;
-            rendered.push(b'\n');
+            values
+                .push(serde_json::from_slice(&rendered).map_err(|error| {
+                    anyhow::anyhow!("jq filter produced invalid JSON: {error}")
+                })?);
             Ok(())
         },
     )?;
 
-    String::from_utf8(rendered)
-        .map_err(|error| anyhow::anyhow!("jq filter produced invalid UTF-8: {error}"))
+    Ok(values)
 }
 
 #[cfg(test)]
 mod tests {
     use serde_json::json;
 
-    use super::render_output;
+    use super::{OutputLanguage, render_output};
 
     #[test]
     fn formatでネストしたフィールドを抽出できる() {
         let output = json!({"foo": {"bar": {"buz": 42}}, "other": true});
 
-        let rendered = render_output(&output, Some(".foo.bar.buz")).unwrap();
+        let rendered = render_output(&output, OutputLanguage::En, Some(".foo.bar.buz")).unwrap();
 
         assert_eq!(rendered, "42\n");
     }
@@ -212,7 +222,7 @@ mod tests {
     fn formatは複数の結果をjqと同様に一件ずつ出力する() {
         let output = json!({"items": [{"name": "A"}, {"name": "B"}]});
 
-        let rendered = render_output(&output, Some(".items[].name")).unwrap();
+        let rendered = render_output(&output, OutputLanguage::En, Some(".items[].name")).unwrap();
 
         assert_eq!(rendered, "\"A\"\n\"B\"\n");
     }
@@ -221,15 +231,36 @@ mod tests {
     fn formatを省略すると従来どおりjsonを整形して出力する() {
         let output = json!({"foo": {"bar": 1}});
 
-        let rendered = render_output(&output, None).unwrap();
+        let rendered = render_output(&output, OutputLanguage::En, None).unwrap();
 
         assert_eq!(rendered, "{\n  \"foo\": {\n    \"bar\": 1\n  }\n}\n");
     }
 
     #[test]
     fn 不正なformatはエラーにする() {
-        let error = render_output(&json!({"foo": 1}), Some(".foo |")).unwrap_err();
+        let error =
+            render_output(&json!({"foo": 1}), OutputLanguage::En, Some(".foo |")).unwrap_err();
 
         assert!(error.to_string().contains("invalid jq filter"));
+    }
+
+    #[test]
+    fn 日本語出力でも英語キーでformatを適用してからキーを翻訳する() {
+        let output = json!({
+            "report": {
+                "company_overview": {
+                    "business_results_summary": [{"operating_revenue_summary": 42}]
+                }
+            }
+        });
+
+        let rendered = render_output(
+            &output,
+            OutputLanguage::Ja,
+            Some(".report.company_overview.business_results_summary[0]"),
+        )
+        .unwrap();
+
+        assert_eq!(rendered, "{\n  \"売上高・営業収益\": 42\n}\n");
     }
 }
