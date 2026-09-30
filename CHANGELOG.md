@@ -7,6 +7,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.0.8](https://github.com/strikegroup/edinet_cli/compare/v0.0.7...v0.0.8) - 2026-09-30
+
+### Added
+
+- trace レベルのログでパフォーマンス計測可能に
+- --verbose オプションを追加
+- [**breaking**] --lang ja でもフィルタを適用可能に
+
+### Other
+
+- mise 更新
+- --verbose オプションの実装を簡略化
+
 ## [0.0.7](https://github.com/strikegroup/edinet_cli/compare/v0.0.6...v0.0.7) - 2026-09-22
 
 ### Added
